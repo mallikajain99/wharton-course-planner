@@ -77,10 +77,11 @@ button{color:var(--ink)} button.pri{background:var(--ink);color:var(--plane)}
  .grid td[data-l] label::after{content:attr(data-l)}
  .grid td[data-l] label:has(input:checked){background:var(--accent);color:#fff;box-shadow:none}
  .nav{padding:10px 14px}
-}</style><script>try{var th=localStorage.getItem("wcp.theme");if(th)document.documentElement.dataset.theme=th;}catch(e){}</script></head><body><div class="wrap">
+}</style><script>try{var th=localStorage.getItem("wcp.theme");if(th)document.documentElement.dataset.theme=th;}catch(e){}</script><script data-goatcounter="https://mallikajain.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head><body><div class="wrap">
 <h1>Plan your two years at Wharton</h1>
 <p class="sub">About 3 minutes. Pick what fits — every question has an “Other” box if nothing does, and you can change any answer later.</p>
-<div class='privacy'><b>Privacy:</b> nothing you enter is stored on a server or sent anywhere. Your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them.</div><div class="prog" id="prog"></div>
+<div class='privacy'><b>Privacy:</b> nothing you enter is stored on a server or sent anywhere — your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them. We count anonymous visits, completed surveys and started plans (never your answers or any personal details) to see how many people use the planner.</div><div class="prog" id="prog"></div>
 <div id="parts"></div>
 <div id="review" class="part"></div>
 <div id="donep" class="part"></div>
@@ -220,7 +221,9 @@ function submit(){
   var st=JSON.parse(localStorage.getItem("wcp.state")||"null");
   if(st){ st.rescore=true; localStorage.setItem("wcp.state",JSON.stringify(st)); }
  }catch(e){ alert("Your browser blocked saving (private mode?). The planner needs local storage to work."); return; }
- location.href="board.html";
+  // anonymous usage count: the event name only — never answers
+ try{ if(window.goatcounter&&window.goatcounter.count) window.goatcounter.count({path:"survey-completed",title:"Survey completed",event:true}); }catch(e){}
+ setTimeout(function(){ location.href="board.html"; }, 250);
 }
 function go(n){
  cur=n;

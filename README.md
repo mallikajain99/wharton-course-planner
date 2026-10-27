@@ -22,7 +22,7 @@ Claude Code.
    semester, lighter recruiting terms, quant-heavy courses spread out. Drag to rearrange, lock what you're sure
    of, and re-suggest the rest.
 
-Your answers and plan are saved in your own browser (localStorage). Nothing is sent anywhere.
+Your answers and plan are saved in your own browser (localStorage) and never sent anywhere. The site counts anonymous visits, completed surveys and started plans with [GoatCounter](https://www.goatcounter.com/) (cookieless; no answers or personal details).
 
 ## How the recommendations work
 

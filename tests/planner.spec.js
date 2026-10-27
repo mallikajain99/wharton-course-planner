@@ -39,6 +39,11 @@ async function takeSurvey(page, opts = {}) {
 
 test.beforeEach(async ({ page }) => {
   page.on("pageerror", e => { throw new Error("Page error: " + e.message); });
+  // never send test traffic to the real usage counter; record what would have been sent instead
+  await page.route(/goatcounter\.com|gc\.zgo\.at/, r => r.abort());
+  await page.addInitScript(() => { window.__gc = []; window.goatcounter = { count: o => window.__gc.push(o) };
+    try { const prev = JSON.parse(sessionStorage.getItem("__gc") || "[]"); window.__gc = prev; } catch (e) {}
+    window.addEventListener("beforeunload", () => sessionStorage.setItem("__gc", JSON.stringify(window.__gc))); });
   await page.goto("/index.html");
   await page.evaluate(() => localStorage.clear());
 });
@@ -133,6 +138,21 @@ test("recruiting semesters from the survey are the ones kept lighter", async ({ 
   await expect(page.locator("input[data-rec=\"Fall '27\"]")).toBeChecked();
   await expect(page.locator("input[data-rec=\"Spring '28\"]")).not.toBeChecked();
   await expect(page.locator("td.tn", { hasText: "Spring '27" })).toContainText("recruiting term");
+});
+
+test("usage counts send event names only — never answers", async ({ page }) => {
+  await takeSurvey(page);
+  await page.locator(".col:nth-child(2) .card").first().locator("[data-decide='yes']").click();
+  await page.locator(".col:nth-child(2) .card").first().locator("[data-decide='yes']").click();
+  await page.click("[data-feedback]");
+  const sent = await page.evaluate(() => window.__gc);
+  const names = sent.map(o => o.path);
+  expect(names).toContain("survey-completed");
+  expect(names.filter(n => n === "plan-started").length).toBe(1);
+  expect(names).toContain("feedback-opened");
+  const payload = JSON.stringify(sent);
+  for (const answer of ["Teacher", "Founder", "Finance", "hands-on", "No travel"]) expect(payload).not.toContain(answer);
+  await expect(page.locator("footer .privacy")).toContainText("We count anonymous visits");
 });
 
 test("no sideways scrolling on the page", async ({ page }) => {

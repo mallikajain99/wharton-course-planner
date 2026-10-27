@@ -125,8 +125,16 @@
   function entries() { return Object.keys(S.plan).map(function (k) { return Object.assign({ code: k }, S.plan[k]); }); }
   function cuOf(code) { var e = S.plan[code]; return e && e.own ? e.cu : (BY[code] ? BY[code].cu : (e ? e.cu : 0)); }
   function isQuant(code) { return !!(BY[code] && BY[code].quant); }
+  // anonymous usage counts: event names only, never answers or class picks
+  function countEvent(name, title, once) {
+    try {
+      if (once) { if (localStorage.getItem("wcp.ev." + name)) return; localStorage.setItem("wcp.ev." + name, "1"); }
+      if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: name, title: title, event: true });
+    } catch (e) {}
+  }
   function addToPlan(code, extra) {
     if (S.plan[code]) return;
+    countEvent("plan-started", "Plan started", true);
     S.plan[code] = Object.assign({ term: null, slot: null, locked: false, why: null }, extra || {});
     delete S.dec[code];
     S.changes += 1;
@@ -617,6 +625,7 @@
     document.body.appendChild(o);
   }
   function feedback() {
+    countEvent("feedback-opened", "Feedback opened", false);
     var sf = {}; try { sf = JSON.parse(localStorage.getItem("wcp.surveyFeedback") || "{}"); } catch (e) {}
     var o = document.createElement("div");
     o.className = "pop-o";
