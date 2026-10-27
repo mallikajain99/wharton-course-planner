@@ -105,6 +105,7 @@
   var TODAY = new Date().toISOString().slice(0, 10);
   function started(e) { return e.term && STARTS[e.term] && TODAY >= STARTS[e.term]; }
   var TARGET = 4.5, QCAP = 3, RQCAP = 2;
+  var HEAVY = 5.5;   // warning only — no hard limit
 
   // ---------- plan ----------
   function entries() { return Object.keys(S.plan).map(function (k) { return Object.assign({ code: k }, S.plan[k]); }); }
@@ -387,7 +388,7 @@
         h += "<td class='slot' data-term=\"" + esc(t) + "\" data-slot='" + s + "'>" + cell.map(chip).join("") + "</td>";
       });
       es.forEach(function (e) { if (e.term === t) { tcu += cuOf(e.code); nq += isQuant(e.code) ? 1 : 0; } });
-      h += "<td class='tcu'>" + fmt(tcu) + (nq ? "<div class='" + (nq > QCAP ? "flag" : "qcount") + "'>∑ " + nq + " quant-heavy " + (nq === 1 ? "course" : "courses") + "</div>" : "") + "</td></tr>";
+      h += "<td class='tcu'>" + fmt(tcu) + (tcu > HEAVY ? "<div class='flag'>⚠ heavy — more than a typical semester; move or drop classes</div>" : "") + (nq ? "<div class='" + (nq > QCAP ? "flag" : "qcount") + "'>∑ " + nq + " quant-heavy " + (nq === 1 ? "course" : "courses") + "</div>" : "") + "</td></tr>";
     });
     h += "</table><div class='tray slot' data-term='' data-slot=''><b>Needs a term</b> " + (es.filter(function (e) { return !e.term; }).map(chip).join("") || "<span class='cu'>none</span>") + "</div>";
     return h;
