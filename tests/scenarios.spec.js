@@ -3,8 +3,10 @@ const { test, expect } = require("@playwright/test");
 const personas = require("./personas.json");
 const P = id => personas.find(p => p.id === id).survey;
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, info) => {
   page.on("pageerror", e => { throw new Error("Page error: " + e.message); });
+  // the double-count pop-ups are tested on their own (tests named "prompt"); elsewhere they'd sit in front of every click
+  if (!/prompt/.test(info.title)) await page.addInitScript(() => localStorage.setItem("wcp.noDoublePrompt", "1"));
   page.on("dialog", d => d.accept());
   await page.route(/goatcounter\.com|gc\.zgo\.at/, r => r.abort());
 });
@@ -32,7 +34,8 @@ test("five majors: all five show, then drop to two — tags, filters, overview a
   await expect(page.locator(".cg[data-major]")).toHaveCount(2);
   await expect(page.locator(".side a.go.on")).toHaveAttribute("data-go", "majors");   // stays on Majors after the reload
   await view(page, "overview");
-  await expect(page.locator(".kpi").nth(2)).toContainText("+1 more");
+  await expect(page.locator(".kpi[href='#majors']:not(.dblk)")).toHaveCount(2);           // one ring per major
+  await expect(page.locator(".kpi.dblk")).toContainText("/ 2.0");
   await page.click("text=Update survey");
   await expect(page.locator("input[name='majors'][value='Finance']")).toBeChecked();
   await expect(page.locator("input[name='majors'][value='Real Estate']")).not.toBeChecked();
@@ -337,4 +340,216 @@ test("remove a major: Cancel keeps it; 'and its classes' removes only that major
   const plan = await page.evaluate(() => Object.keys(window.__wcp.S.plan));
   for (const c of reOnly) expect(plan).not.toContain(c);
   expect(plan).toContain(fin);
+});
+
+test("double-counting: auto-trims to 2.0 CU, override wins (red if over), back to automatic restores", async ({ page }) => {
+  const s = Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Finance", "Entrepreneurship & Innovation", "Artificial Intelligence for Business"] });
+  await board(page, s, "#majors");
+  await page.evaluate(() => { ["FNCE 7500", "FNCE 7800", "MKTG 7270", "MKTG 7340"].forEach(c => window.__wcp.addToPlan(c)); window.__wcp.render(); });
+  const st = () => page.evaluate(() => ({ dbl: window.__wcp.majorState().dbl, a: window.__wcp.assignment() }));
+  let r = await st();
+  expect(r.dbl).toBeLessThanOrEqual(2);
+  const trimmedClass = Object.keys(r.a.trimmed)[0];
+  expect(trimmedClass).toBeTruthy();
+  for (let i = 0; i < 8; i++) { const m = page.locator("[data-showall]", { hasText: "Show all" }); if (!(await m.count())) break; await m.first().click(); }
+  await expect(page.locator(".cnt").filter({ has: page.locator(`[data-countfor^='${trimmedClass}||']`) }).first()).toContainText("only — keeps you within");
+  // override: count the trimmed class toward both → over the cap, red
+  const off = page.locator(`[data-countfor^='${trimmedClass}||']:not(.on)`).first();
+  await off.click();
+  r = await st();
+  expect(r.a.manual[trimmedClass]).toBe(1);
+  expect(r.a.set[trimmedClass].length).toBe(2);                      // the student's choice is kept…
+  expect(r.dbl).toBeLessThanOrEqual(2);                               // …and another automatic class is trimmed instead
+  expect(Object.keys(r.a.trimmed).some(k => k !== trimmedClass)).toBe(true);
+  // only the student's own choices can push past the cap — then it shows red
+  await page.evaluate(() => { const P = window.__wcp, a = P.assignment(); P.S.count = {};
+    ["FNCE 7500", "FNCE 7800", "MKTG 7270", "MKTG 7340"].forEach(c => { P.S.count[c] = (a.set[c] || []).concat(a.trimmed[c] || []); }); P.render(); });
+  r = await st();
+  expect(r.dbl).toBeGreaterThan(2);
+  await view(page, "overview");
+  await expect(page.locator(".summ .sx.dover")).toBeVisible();
+  await page.evaluate(c => { const P = window.__wcp; P.S.count = {}; P.S.count[c] = P.assignment().set[c].concat(P.assignment().trimmed[c] || []); P.render(); }, trimmedClass);
+  // the class's tags follow the choice
+  await view(page, "electives");
+  await expect(page.locator(`.col:nth-child(1) .card[data-code='${trimmedClass}'] .tag.mj.off`)).toHaveCount(0);
+  await view(page, "majors");
+  for (let i = 0; i < 8; i++) { const m = page.locator("[data-showall]", { hasText: "Show all" }); if (!(await m.count())) break; await m.first().click(); }
+  await page.locator(`[data-countauto='${trimmedClass}']`).first().click();
+  r = await st();
+  expect(r.dbl).toBeLessThanOrEqual(2);
+  // turning a major off removes the class from that major's progress
+  const before = await page.evaluate(() => window.__wcp.majorState().rows.find(x => x.name === "Finance"));
+  await page.locator("[data-countfor='FNCE 7500||Finance']").first().click();
+  const after = await page.evaluate(() => window.__wcp.majorState().rows.find(x => x.name === "Finance"));
+  expect(before.t + before.p - (after.t + after.p)).toBeCloseTo(1, 5);
+  await view(page, "electives");
+  await expect(page.locator(".col:nth-child(1) .card[data-code='FNCE 7500'] .tag.mj.off")).toContainText("Finance");
+});
+
+test("electives page explains it's the complete list; 'All other Wharton electives' filter", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { majors: ["Finance"] }), "#electives");
+  await expect(page.locator(".sub").first()).toContainText("complete list of every Wharton class outside core and flex core");
+  await page.click("[data-filter='none']");
+  await expect(page.locator("[data-filter='none']")).toHaveText("All other Wharton electives");
+  const tagged = await page.locator(".col:nth-child(2) .card .tag.mj").count();
+  expect(tagged).toBe(0);
+});
+
+const DBL = Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Finance", "Entrepreneurship & Innovation", "Artificial Intelligence for Business"] });
+async function addViaSearch(page, code) {
+  await page.fill("#q", code);
+  await page.locator(`.col:nth-child(2) .card[data-code='${code}'] [data-decide='yes']`).click();
+}
+
+test("double-count prompt: picking a class that fits two majors asks how to count it", async ({ page }) => {
+  await board(page, DBL, "#electives");
+  await addViaSearch(page, "FNCE 7500");
+  const pop = page.locator(".pop.dblpop");
+  await expect(pop).toContainText("FNCE 7500 can count toward");
+  await expect(pop).toContainText("0 of 2.0 CU");
+  await pop.locator("[data-dbl='FNCE 7500||Finance']").click();
+  expect(await page.evaluate(() => window.__wcp.assignment().set["FNCE 7500"])).toEqual(["Finance"]);
+  await addViaSearch(page, "FNCE 7800");
+  await page.locator(".pop.dblpop button.pri").first().click();            // count toward both
+  expect((await page.evaluate(() => window.__wcp.assignment().set["FNCE 7800"])).length).toBe(2);
+  await page.fill("#q", "");
+  await expect(page.locator(".col:nth-child(1) .card[data-code='FNCE 7800'] .twice")).toBeVisible();
+});
+
+test("double-count prompt: when the limit is full, 'both' is disabled with a red warning", async ({ page }) => {
+  await board(page, DBL, "#electives");
+  await page.evaluate(() => { const P = window.__wcp; ["FNCE 7500", "MKTG 7340", "FNCE 7800"].forEach(c => P.addToPlan(c));
+    P.S.count = { "FNCE 7500": ["Finance", "Entrepreneurship & Innovation"], "MKTG 7340": ["Entrepreneurship & Innovation", "Artificial Intelligence for Business"], "FNCE 7800": ["Finance", "Artificial Intelligence for Business"] }; P.render(); });
+  expect(await page.evaluate(() => window.__wcp.dblUsed())).toBe(2);
+  await addViaSearch(page, "MKTG 7270");
+  const pop = page.locator(".pop.dblpop");
+  await expect(pop.locator(".warnr")).toContainText("over Wharton's limit");
+  await expect(pop.locator("button.pri").first()).toBeDisabled();
+  await pop.locator("[data-cancel]").click();
+  expect(await page.evaluate(() => window.__wcp.dblUsed())).toBeLessThanOrEqual(2);
+});
+
+test("double-count prompt: removing a class that counted twice offers the room to another class", async ({ page }) => {
+  await board(page, DBL, "#electives");
+  await page.evaluate(() => { const P = window.__wcp; ["FNCE 7500", "MKTG 7340", "FNCE 7800", "MKTG 7270"].forEach(c => P.addToPlan(c));
+    P.S.count = { "FNCE 7500": ["Finance", "Entrepreneurship & Innovation"], "MKTG 7340": ["Entrepreneurship & Innovation", "Artificial Intelligence for Business"], "FNCE 7800": ["Finance", "Artificial Intelligence for Business"], "MKTG 7270": ["Artificial Intelligence for Business"] }; P.render(); });
+  await page.locator(".col:nth-child(1) .card[data-code='MKTG 7340'] [data-decide='maybe']").click();
+  const pop = page.locator(".pop.dblpop");
+  await expect(pop).toContainText("You freed up double-counting room");
+  await expect(pop).toContainText("MKTG 7270");
+  await pop.locator("[data-dbl^='MKTG 7270||']").click();
+  expect((await page.evaluate(() => window.__wcp.assignment().set["MKTG 7270"])).length).toBe(2);
+});
+
+test("double-count panel on the Majors page shows usage and which classes count twice", async ({ page }) => {
+  await board(page, DBL, "#majors");
+  await page.evaluate(() => { const P = window.__wcp; ["FNCE 7500", "FNCE 7800"].forEach(c => P.addToPlan(c)); P.render(); });
+  const panel = page.locator(".dblpanel");
+  await expect(panel).toContainText("1.5 of 2.0 CU used");
+  await expect(panel).toContainText("FNCE 7500");
+  await expect(panel).toContainText("FNCE 7800");
+});
+
+test("flex classes a major lists show under that major and on Major & elective courses; fixed core never does", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Artificial Intelligence for Business", "Entrepreneurship & Innovation"] }), "#majors");
+  for (let i = 0; i < 8; i++) { const m = page.locator("[data-showall]", { hasText: "Show all" }); if (!(await m.count())) break; await m.first().click(); }
+  await expect(page.locator(".cg[data-major='Artificial Intelligence for Business'] input[data-pick='OIDD 6620']")).toHaveCount(1);
+  await expect(page.locator(".cg[data-major='Entrepreneurship & Innovation'] input[data-pick='OIDD 6140']")).toHaveCount(1);
+  await view(page, "electives");
+  await page.fill("#q", "OIDD 6620");
+  await expect(page.locator(".card[data-code='OIDD 6620']")).toContainText("flex core");
+  await page.fill("#q", "MGMT 6100");
+  await expect(page.locator(".card[data-code='MGMT 6100']")).toHaveCount(0);   // fixed core: never here
+  await page.fill("#q", "");
+  await page.fill("#q", "OIDD 6620");
+  await page.locator(".card[data-code='OIDD 6620'] [data-decide='yes']").click();
+  await view(page, "core");
+  await expect(page.locator("input[data-pick='OIDD 6620']").first()).toBeChecked();   // same class, fills flex too
+});
+
+test("flex vs. major, one job per class (E&I): ticked in Core it fills flex; switch it to the major; ticked on the major it counts there", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Entrepreneurship & Innovation"] }), "#core");
+  const oidd = page.locator(".cg", { hasText: "Operations, Information" }).first();
+  await oidd.locator("label:has(input[value='take'])").click();
+  await oidd.locator("input[data-pick='OIDD 6140']").check();
+  await page.locator(".cg", { hasText: "Operations, Information" }).first().locator("input[data-pick='OIDD 6120']").check();   // 0.5 + 0.5 = the 1.0 CU flex
+  await expect(page.locator(".cg", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
+  await view(page, "majors");
+  const ei = page.locator(".cg[data-major='Entrepreneurship & Innovation']");
+  for (let i = 0; i < 6; i++) { const m = ei.locator("[data-showall]", { hasText: "Show all" }); if (!(await m.count())) break; await m.first().click(); }
+  await expect(ei).toContainText("Selected for flex core requirement");
+  const before = await page.evaluate(() => window.__wcp.majorState().rows[0]);
+  await ei.locator("[data-use='OIDD 6140||major']").click();
+  const after = await page.evaluate(() => window.__wcp.majorState().rows[0]);
+  expect(after.t + after.p).toBeGreaterThan(before.t + before.p);
+  await view(page, "core");
+  await expect(page.locator(".cg", { hasText: "Operations, Information" }).first()).not.toContainText("✓ covered");
+  await expect(page.locator(".usenote")).toContainText("Counting for E&I — not this flex requirement");
+  await page.click("[data-use='OIDD 6140||flex']");
+  await expect(page.locator(".cg", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
+  // ticking a flex-type class on the major's card makes it count for the major
+  await view(page, "majors");
+  for (let i = 0; i < 6; i++) { const m = page.locator("[data-showall]", { hasText: "Show all" }); if (!(await m.count())) break; await m.first().click(); }
+  await page.locator(".cg[data-major='Entrepreneurship & Innovation'] input[data-pick='OIDD 6620']").check();
+  expect(await page.evaluate(() => window.__wcp.usedForMajor("OIDD 6620"))).toBe(true);
+});
+
+test("majors that allow it (OIDD major) count a flex class toward both", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Operations, Information and Decisions"] }), "#core");
+  const oidd = page.locator(".cg", { hasText: "Operations, Information" }).first();
+  await oidd.locator("label:has(input[value='take'])").click();
+  await oidd.locator("input[data-pick='OIDD 6110']").check();
+  await page.locator(".cg", { hasText: "Operations, Information" }).first().locator("input[data-pick='OIDD 6120']").check();
+  await expect(page.locator(".cg", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
+  const r = await page.evaluate(() => window.__wcp.majorState().rows[0]);
+  expect(r.t + r.p).toBeGreaterThan(0);
+  await view(page, "majors");
+  await expect(page.locator(".usenote")).toHaveCount(0);
+});
+
+test("department majors count 6000-level electives (MGMT 6910 → Management, OIDD 6540 → MAOM / OIDD)", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Management", "Operations, Information and Decisions"] }), "#majors");
+  await page.evaluate(() => { ["MGMT 6910", "OIDD 6540"].forEach(c => window.__wcp.addToPlan(c)); window.__wcp.render(); });
+  const rows = await page.evaluate(() => Object.fromEntries(window.__wcp.majorState().rows.map(r => [r.name, r.t + r.p])));
+  expect(rows["Management"]).toBeGreaterThan(0);
+  expect(rows["Operations, Information and Decisions"]).toBeGreaterThan(0);
+});
+
+test("OIDD: at most 1 CU of independent study + Global Modular Courses counts, and the rule says so", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Operations, Information and Decisions"] }), "#majors");
+  await page.evaluate(() => { ["OIDD 8970", "OIDD 8990"].forEach(c => window.__wcp.addToPlan(c)); window.__wcp.render(); });
+  const r = await page.evaluate(() => window.__wcp.majorState().rows[0]);
+  expect(r.t + r.p).toBeLessThanOrEqual(1);
+  await expect(page.locator(".cg[data-major='Operations, Information and Decisions'] .rules")).toContainText("At most 1 CU of independent study and Global Modular Courses");
+  await expect(page.locator(".cg[data-major='Operations, Information and Decisions'] .rules .appl")).toBeVisible();
+});
+
+test("'Also requires' checklist: Business Analytics shows the Statistics core and OIDD pieces, met by picking or waiving", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Business Analytics"] }), "#majors");
+  const card = page.locator(".cg[data-major='Business Analytics']");
+  await expect(card.locator(".chk.no")).toHaveCount(3);
+  expect(await page.evaluate(() => window.__wcp.majorState().rows[0].need)).toBe(4);   // still 4 CU of electives
+  await view(page, "core");
+  await page.locator(".cg", { hasText: "Statistics" }).first().locator("label:has(input[value='waived'])").click();
+  const oidd = page.locator(".cg", { hasText: "Operations, Information" }).first();
+  await oidd.locator("label:has(input[value='take'])").click();
+  await oidd.locator("input[data-pick='OIDD 6120']").check();
+  await view(page, "majors");
+  await expect(page.locator(".cg[data-major='Business Analytics'] .chk.ok")).toHaveCount(2);
+  await expect(page.locator(".cg[data-major='Business Analytics'] .chk.no")).toContainText("OIDD 6110 or OIDD 6150");
+});
+
+test("Microeconomics: waiving covers BEPP 6110 only — BEPP 6120 is still required", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028" }), "#core");
+  const before = await page.evaluate(() => window.__wcp.coreState()[0].need);
+  const micro = () => page.locator(".cg", { hasText: "Microeconomics" }).first();
+  await micro().locator("label:has(input[value='waived'])").click();
+  await expect(micro()).toContainText("still need BEPP 6120");
+  await expect(micro().locator("input[data-pick='BEPP 6110']")).toHaveCount(0);
+  await expect(micro().locator("input[data-pick='BEPP 6120']")).toHaveCount(1);
+  expect(await page.evaluate(() => window.__wcp.coreState()[0].need)).toBeCloseTo(before - 0.5, 5);   // only 6110's 0.5 CU waived
+  await micro().locator("input[data-pick='BEPP 6120']").check();
+  await expect(micro()).toContainText("✓ covered (BEPP 6110 waived)");
+  await view(page, "calendar");
+  await expect(page.locator(".cal [data-chip='BEPP 6120']")).toBeVisible();
 });

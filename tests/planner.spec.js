@@ -36,6 +36,7 @@ test.beforeEach(async ({ page }) => {
   page.on("pageerror", e => { throw new Error("Page error: " + e.message); });
   // never send test traffic to the real usage counter; record what would have been sent instead
   await page.route(/goatcounter\.com|gc\.zgo\.at/, r => r.abort());
+  await page.addInitScript(() => localStorage.setItem("wcp.noDoublePrompt", "1"));   // double-count pop-ups have their own tests
   await page.addInitScript(() => { window.__gc = []; window.goatcounter = { count: o => window.__gc.push(o) };
     try { const prev = JSON.parse(sessionStorage.getItem("__gc") || "[]"); window.__gc = prev; } catch (e) {}
     window.addEventListener("beforeunload", () => sessionStorage.setItem("__gc", JSON.stringify(window.__gc))); });
@@ -47,7 +48,7 @@ test("survey → board shows summary, Start here, recommendations and privacy", 
   await takeSurvey(page);
   await expect(page.locator(".side a.go.on")).toHaveText("Overview");
   await expect(page.locator(".summ-h")).toHaveText("Your plan");
-  await expect(page.locator(".kpi")).toHaveCount(4);
+  expect(await page.locator(".kpi").count()).toBeGreaterThanOrEqual(3);
   await expect(page.locator(".tl")).toBeVisible();
   await expect(page.getByText("Not a fit")).toHaveCount(0);
   await expect(page.locator(".pv")).toContainText("Saved only in this browser");
