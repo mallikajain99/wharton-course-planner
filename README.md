@@ -39,19 +39,22 @@ No AI runs while you use the planner, so it's free to host and private by design
 
 ### How it was tested
 
-Several designs were compared against expert-written answer keys for held-out student profiles, scored on how
-many of the expert's top 20 classes each design surfaced:
+Each approach was scored against **expert answer keys** — an advisor-style pick of the 20 best electives for each
+sample student, written from that student's full profile (more than the survey captures). Every model was tested
+only on students it was never trained on.
 
-| Approach | Expert's top 20 found in the top 30 recommendations |
-|---|---|
-| Hand-written rules | ~11 |
-| **Learned weights (this planner)** | **~12, with more right labels and fewer wrong ones** |
-| Live AI ranking per student | ~17 |
-| A second independent expert | ~19 |
+| Approach | Tested on | Expert's top 20 found in its top 20 | …in its top 30 |
+|---|---|---|---|
+| Hand-written rules | 5 profiles | 7.4 | 10.6 |
+| **Learned weights (this planner)** | **100 profiles, 5-fold cross-validation** | **10.4** | **13.1** |
+| Live AI ranking per student | 5 profiles | 14.2 | 16.6 |
+| A second independent expert | 5 profiles | 17.8 | 19.2 |
 
-Live AI ranks best but costs money per student; the learned version captures part of that judgment at zero
-running cost. Training on more profiles didn't move the held-out results, which pointed to the limit being the
-per-answer model rather than the data.
+Live AI ranks best but costs money for every student; the learned version captures part of that judgment at zero
+running cost. Experiments that didn't make the cut: more detailed course tags (+0.3 classes), two extra survey
+questions about favorite topics and goals for electives (+0.2), and sharing weights across courses with the same
+tags (worse, −1.0). Training on more profiles didn't move held-out results either — the limit is judging full course
+descriptions, which only live AI does.
 
 ## Sources
 
