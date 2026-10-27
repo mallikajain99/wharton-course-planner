@@ -16,8 +16,18 @@
     var s = null;
     try { s = JSON.parse(localStorage.getItem("wcp.state") || "null"); } catch (e) {}
     if (!s) s = { plan: {}, dec: {}, core: {}, changes: 0, recruiting: null, ownN: 0 };
-    if (!s.recruiting) s.recruiting = /^Mature/.test(A.recruiting || "") ? "mature" : /^Enterprise/.test(A.recruiting || "") ? "enterprise" : "none";
+    if (!s.recruitTerms) s.recruitTerms = recruitFromSurvey();
     return s;
+  }
+  // Recruiting semesters come straight from the survey ("Which semesters will you be recruiting?");
+  // older answers that named a recruiting type are mapped once.
+  function recruitFromSurvey() {
+    var yt = /2027$/.test(A["class"] || "") ? { "Fall of year 1": "Fall '25", "Spring of year 1": "Spring '26", "Fall of year 2": "Fall '26", "Spring of year 2": "Spring '27" }
+                                             : { "Fall of year 1": "Fall '26", "Spring of year 1": "Spring '27", "Fall of year 2": "Fall '27", "Spring of year 2": "Spring '28" };
+    if (A.recruit_terms) return A.recruit_terms.map(function (x) { return yt[x]; }).filter(Boolean);
+    if (/^Mature/.test(A.recruiting || "")) return [yt["Fall of year 1"]];
+    if (/^Enterprise/.test(A.recruiting || "")) return [yt["Spring of year 1"], yt["Spring of year 2"]];
+    return [];
   }
   function save() { try { localStorage.setItem("wcp.state", JSON.stringify(S)); } catch (e) {} }
   var theme = localStorage.getItem("wcp.theme");
@@ -64,6 +74,11 @@
     [["roles", "role"], ["industries", "ind"], ["topics", "topic"], ["background", "bg"], ["skills", "skill"], ["majors", "major"]]
       .forEach(function (p) { (s[p[0]] || []).forEach(function (v) { if (String(v).indexOf("Other: ") !== 0) f[p[1] + ":" + v] = 1; }); });
     if (s.recruiting) f["rec:" + s.recruiting.split(" —")[0]] = 1;
+    else if (s.recruit_terms) {
+      var rt = s.recruit_terms;
+      f["rec:" + (!rt.length || rt.indexOf("Not recruiting") >= 0 ? "Not recruiting"
+        : rt.some(function (x) { return /^Spring/.test(x); }) ? "Enterprise / startup recruiting" : "Mature recruiting")] = 1;
+    }
     Object.keys(s.depth_want || {}).forEach(function (k) { f["want:" + k + "=" + s.depth_want[k]] = 1; });
     Object.keys(s.depth_know || {}).forEach(function (k) { f["know:" + k + "=" + s.depth_know[k]] = 1; });
     return f;
@@ -98,8 +113,6 @@
   var c27 = /2027$/.test(A["class"] || "");
   var TERMS = c27 ? ["Summer '25", "Fall '25", "Spring '26", "Fall '26", "Spring '27"] : ["Summer '26", "Fall '26", "Spring '27", "Fall '27", "Spring '28"];
   var FUTURE = c27 ? ["Spring '27"] : ["Spring '27", "Fall '27", "Spring '28"];
-  var RECRUIT = c27 ? { mature: ["Fall '25"], enterprise: ["Spring '26", "Spring '27"], none: [] }
-                    : { mature: ["Fall '26"], enterprise: ["Spring '27", "Spring '28"], none: [] };
   var STARTS = { "Summer '25": "2025-08-01", "Fall '25": "2025-08-25", "Spring '26": "2026-01-14", "Summer '26": "2026-08-01",
     "Fall '26": "2026-08-25", "Spring '27": "2027-01-14", "Fall '27": "2027-08-25", "Spring '28": "2028-01-14" };
   var TODAY = new Date().toISOString().slice(0, 10);
@@ -134,7 +147,7 @@
       if (slot === "Q1" || slot === "Q2") L[slot] += cu; else { L.Q1 += cu / 2; L.Q2 += cu / 2; }
     }
     Object.keys(fixed).forEach(function (c) { add(fixed[c][0], fixed[c][1], cuOf(c), c); });
-    var heavy = RECRUIT[S.recruiting] || [];
+    var heavy = S.recruitTerms || [];
     var qcap = function (t) { return heavy.indexOf(t) >= 0 ? RQCAP : QCAP; };
     var early = {}; Object.keys(REQ_MAJ).forEach(function (c) { early[c] = 1; });
     Object.keys(D.prereqs).forEach(function (k) { D.prereqs[k].forEach(function (p) { early[p] = 1; }); });
@@ -369,11 +382,11 @@
     return h + "</div>";
   }
   function calendarView() {
-    var heavy = RECRUIT[S.recruiting] || [];
+    var heavy = S.recruitTerms || [];
     var h = "<h2 id='calendar'>Calendar</h2><p class='sub'>Suggested placements fill each semester to about 4.5 CU, schedule core first, keep recruiting terms lighter "
       + "and spread quant-heavy courses. Drag to try a class elsewhere — that doesn't lock it; click 🔓 when you're sure. <b>Which terms each class is offered isn't known.</b></p>";
-    h += "<div class='cst'><span class='cst-l'>Recruiting:</span>" + [["mature", "Mature (busy first fall)"], ["enterprise", "Enterprise / startup (busy spring)"], ["none", "Not recruiting"]].map(function (v) {
-      return "<label><input type='radio' name='rec' data-rec='" + v[0] + "'" + (S.recruiting === v[0] ? " checked" : "") + "> " + v[1] + "</label>";
+    h += "<div class='cst'><span class='cst-l'>Recruiting in:</span>" + TERMS.filter(function (t) { return !/^Summer/.test(t); }).map(function (t) {
+      return "<label><input type='checkbox' data-rec='" + esc(t) + "'" + (heavy.indexOf(t) >= 0 ? " checked" : "") + "> " + esc(t) + "</label>";
     }).join("") + "</div>";
     h += "<div class='resug'><button data-resuggest='1'>↻ Re-suggest</button> <span class='sub'>Re-places every 🔓 suggested class. <b>🔒 Locked classes never move.</b></span>"
       + (S.changes >= 3 ? " <span class='nudge'>You've added or removed " + S.changes + " classes since the last full suggestion — click Re-suggest for a fresh layout. Your 🔒 locked classes won't move.</span>" : "") + "</div>";
@@ -427,7 +440,11 @@
     var t = e.target;
     if (t.dataset.core) { S.core[t.dataset.core] = t.value; return commit(); }
     if (t.dataset.pick) { if (t.checked) addToPlan(t.dataset.pick); else removeFromPlan(t.dataset.pick); return commit(); }
-    if (t.dataset.rec) { S.recruiting = t.dataset.rec; return commit(); }
+    if (t.dataset.rec) {
+      var r = (S.recruitTerms || []).filter(function (x) { return x !== t.dataset.rec; });
+      if (t.checked) r.push(t.dataset.rec);
+      S.recruitTerms = r; return commit();
+    }
   });
   document.addEventListener("input", function (e) {
     if (e.target.id === "q") { ui.q = e.target.value; var pos = e.target.selectionStart; render(); var q = $("#q"); q.focus(); q.setSelectionRange(pos, pos); }

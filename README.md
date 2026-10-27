@@ -65,3 +65,13 @@ per-answer model rather than the data.
 
 It's static HTML and JavaScript — open `index.html` in a browser, or serve the folder with any static host.
 `data.js` holds the course list, tags, learned weights and requirement rules.
+
+## Tests
+
+- **Browser tests** (`tests/planner.spec.js`, Playwright): a student takes the survey and uses the planner in a
+  real browser, at desktop and phone sizes — survey answers, core statuses, picking and ruling out classes,
+  filters and search, calendar locks and Re-suggest, adding your own class, dark mode, redo and start over, and
+  no sideways scrolling. Run with `npm install && npx playwright install chromium && npm test`.
+- A separate scripted suite (kept with the data pipeline) runs the planner's logic for 106 sample students
+  and checks over 1,800 rules: scores match the evaluated model, valid calendar slots, locked classes never
+  move, waived areas leave the totals, and more.

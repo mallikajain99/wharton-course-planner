@@ -63,7 +63,21 @@ button[hidden]{display:none}
 button{color:var(--ink)} button.pri{background:var(--ink);color:var(--plane)}
 .opts label:has(input:checked){background:var(--ink);color:var(--plane)}
 .fb textarea{background:color-mix(in srgb,#e3c27a 18%,var(--card))}
-.privacy{background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--green,#1baf7a);border-radius:8px;padding:9px 13px;margin:0 0 16px;font-size:13px;color:var(--ink2)}</style><script>try{var th=localStorage.getItem("wcp.theme");if(th)document.documentElement.dataset.theme=th;}catch(e){}</script></head><body><div class="wrap">
+.privacy{background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--green,#1baf7a);border-radius:8px;padding:9px 13px;margin:0 0 16px;font-size:13px;color:var(--ink2)}.grid .mo{display:none}
+@media (max-width:640px){
+ .wrap{padding:18px 14px 120px}
+ table.grid,.grid tbody{display:block}
+ .grid tr:first-child,.grid tr:nth-child(2){display:none}
+ .grid tr{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 0;border-bottom:1px solid var(--rule)}
+ .grid td{border:0;padding:0;text-align:center}
+ .grid td.area{grid-column:1/-1;text-align:left;font-weight:600}
+ .grid td.mo,.grid td.gap{display:block;grid-column:1/-1;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);width:auto}
+ .grid .mo{display:inline}
+ .grid td[data-l] label{width:100%;height:auto;border-radius:99px;padding:6px 0;font-size:12px;box-shadow:none}
+ .grid td[data-l] label::after{content:attr(data-l)}
+ .grid td[data-l] label:has(input:checked){background:var(--accent);color:#fff;box-shadow:none}
+ .nav{padding:10px 14px}
+}</style><script>try{var th=localStorage.getItem("wcp.theme");if(th)document.documentElement.dataset.theme=th;}catch(e){}</script></head><body><div class="wrap">
 <h1>Plan your two years at Wharton</h1>
 <p class="sub">About 3 minutes. Pick what fits — every question has an “Other” box if nothing does, and you can change any answer later.</p>
 <div class='privacy'><b>Privacy:</b> nothing you enter is stored on a server or sent anywhere. Your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them.</div><div class="prog" id="prog"></div>
@@ -89,7 +103,7 @@ var PARTS=[
   {id:"roles",t:"What roles are you aiming for after the MBA?",k:"all",o:["Founder / startup","Venture capital","Product management","Strategy & operations","Consulting","Investment banking","Investing (PE / hedge funds)","Corporate finance","Marketing / brand","General management","Social impact","Undecided"]},
   {id:"industries",t:"Which industries interest you?",k:"all",o:["Consumer","Health & wellness","Healthcare","Fintech","AI / software","Climate / energy","Media & entertainment","Real estate","Financial services","Industrials"]},
   {id:"topics",t:"Which topics do you want more of, even outside a major?",k:"all",o:["Negotiation","Leadership","Persuasion / influence","Geopolitics","Ethics","Brand / consumer behavior","Data & AI tools","Personal finance","Public speaking"]},
-  {id:"recruiting",t:"How are you recruiting?",h:"We keep your busiest recruiting semesters lighter.",k:"one",o:["Mature recruiting — busy first fall, lighter after","Enterprise / startup recruiting — busy Spring of year 1, maybe Spring of year 2","Not recruiting"]},
+  {id:"recruit_terms",t:"Which semesters will you be recruiting?",h:"Select all that apply — we keep those semesters lighter on your calendar.",k:"all",o:["Fall of year 1","Spring of year 1","Fall of year 2","Spring of year 2","Not recruiting"],noOther:true},
   {id:"frontload",t:"Do you want to front-load your core and flex core classes?",h:"We'll use this to place classes on your calendar.",k:"one",o:["Yes — get core done early","No — spread core across my semesters","No preference"]},
   {id:"goals_more",t:"Any more context about your goals that would help pick classes?",h:"Optional — a sentence or two.",k:"text"}]},
  {title:"Majors and depth",qs:[
@@ -111,8 +125,8 @@ PARTS.forEach(function(p,pi){
   if(q.k==="one"||q.k==="all"){
    var ty=q.k==="one"?"radio":"checkbox";
    html+="<div class='opts'>"+q.o.map(function(o){return "<label><input type='"+ty+"' name='"+q.id+"' value='"+esc(o)+"'>"+esc(o)+"</label>";}).join("")
-     +"<label><input type='"+ty+"' name='"+q.id+"' value='__other'>Other</label></div>"
-     +"<div class='other'><input class='txt' data-other='"+q.id+"' placeholder='Type your own answer'></div>";
+     +(q.noOther?"</div>":"<label><input type='"+ty+"' name='"+q.id+"' value='__other'>Other</label></div>"
+     +"<div class='other'><input class='txt' data-other='"+q.id+"' placeholder='Type your own answer'></div>");
   } else if(q.k==="text"){
    html+="<textarea data-text='"+q.id+"'"+(q.big?" style='min-height:110px'":"")+"></textarea>";
   } else if(q.k==="grid2"){
@@ -121,8 +135,8 @@ PARTS.forEach(function(p,pi){
      +"<tr><th></th>"+q.know.map(th).join("")+"<th class='gap'></th>"+q.want.map(th).join("")+"</tr>";
    q.rows.concat(["__other"]).forEach(function(r,ri){
     var lab=r==="__other"?"<input class='txt' data-otherrow='"+q.id+"' placeholder='Other area' style='max-width:200px'>":esc(r);
-    var cell=function(side){return function(c){return "<td><label><input type='radio' name='"+q.id+"_"+side+"__"+ri+"' value='"+esc(c[0])+"'></label></td>";};};
-    html+="<tr><td>"+lab+"</td>"+q.know.map(cell("know")).join("")+"<td class='gap'></td>"+q.want.map(cell("want")).join("")+"</tr>";
+    var cell=function(side){return function(c){return "<td data-l='"+esc(c[0])+"'><label data-l='"+esc(c[0])+"'><input type='radio' name='"+q.id+"_"+side+"__"+ri+"' value='"+esc(c[0])+"'></label></td>";};};
+    html+="<tr><td class='area'>"+lab+"</td><td class='mo'>Already know</td>"+q.know.map(cell("know")).join("")+"<td class='gap'><span class='mo'>Want to end up at</span></td>"+q.want.map(cell("want")).join("")+"</tr>";
    });
    html+="</table>";
   } else if(q.k==="grid"){
@@ -158,7 +172,7 @@ function answers(){
   var v;
   if(q.k==="one"||q.k==="all"){
    v=[].map.call(document.querySelectorAll("input[name='"+q.id+"']:checked"),function(x){return x.value;});
-   var ot=document.querySelector("[data-other='"+q.id+"']").value.trim();
+   var oe=document.querySelector("[data-other='"+q.id+"']"), ot=oe?oe.value.trim():"";
    v=v.map(function(x){return x==="__other"?("Other: "+(ot||"(blank)")):x;});
    if(q.k==="one") v=v[0]||"";
   } else if(q.k==="text"){ v=document.querySelector("[data-text='"+q.id+"']").value.trim(); }
