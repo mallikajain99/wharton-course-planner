@@ -98,6 +98,9 @@
     if (t.level === "Intro" || t.level === "Fluent") t.areas.slice(0, 2).forEach(function (area, i) {
       if ((want[area] || 0) >= 1 && (want[area] || 0) > (know[area] || 0)) { v += D.growth * (i ? 0.5 : 1); grew = grew || area; }
     });
+    if (t.level === "Intro" || t.level === "Fluent") (t.xareas || []).forEach(function (area) {   // newer areas count as secondary
+      if ((want[area] || 0) >= 1 && (want[area] || 0) > (know[area] || 0)) { v += D.growth * 0.5; grew = grew || area; }
+    });
     SCORE[c] = v;
     LABEL[c] = v >= D.best ? "Best fit" : v >= D.good ? "Good fit" : "";
     ws.sort(function (a, b) { return b[0] - a[0]; });

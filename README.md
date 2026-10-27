@@ -46,14 +46,17 @@ only on students it was never trained on.
 | Approach | Tested on | Expert's top 20 found in its top 20 | …in its top 30 |
 |---|---|---|---|
 | Hand-written rules | 5 profiles | 7.4 | 10.6 |
-| **Learned weights (this planner)** | **132 profiles, 5-fold cross-validation** | **10.4** | **13.1** |
+| **Learned weights (this planner)** | **132 profiles, 5-fold cross-validation** | **10.4** | **13.4** |
+| **Learned weights (this planner)** | **25 never-seen profiles** | **10.3** | **13.1** |
 | Live AI ranking per student | 5 profiles | 14.2 | 16.6 |
 | A second independent expert | 5 profiles | 17.8 | 19.2 |
 
 Live AI ranks best but costs money for every student; the learned version captures part of that judgment at zero
 running cost. Experiments that didn't make the cut: more detailed course tags (+0.3 classes), two extra survey
 questions about favorite topics and goals for electives (+0.2), and sharing weights across courses with the same
-tags (worse, −1.0). Adding 32 profiles for the four newest majors lifted those students by +1.3 classes. Beyond that, training on more profiles didn't move held-out results either — the limit is judging full course
+tags (worse, −1.0). Adding 32 profiles for the four newest majors lifted those students by +1.3 classes. Longer answer lists
+(more backgrounds, roles and industries, plus six new subject areas) lifted 20 new test students by +0.9 classes and
+cut bad picks by 1.5. Beyond that, training on more profiles didn't move held-out results either — the limit is judging full course
 descriptions, which only live AI does.
 
 ## Sources

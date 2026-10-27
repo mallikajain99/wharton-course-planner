@@ -20,7 +20,6 @@ async function takeSurvey(page, opts = {}) {
   await pick("recruit_terms", "Spring of year 1");
   await pick("recruit_terms", "Fall of year 2");
   await pick("frontload", opts.frontload || "Yes — get core done early");
-  await page.fill("[data-text='goals_more']", "Want hands-on startup classes.");
   await page.click("#next");
   // Part 3
   await pick("majors", "Finance");
@@ -28,9 +27,7 @@ async function takeSurvey(page, opts = {}) {
   await page.locator("input[name='depth_know__0'][value='Some']").locator("..").click();
   await page.locator("input[name='depth_want__0'][value='Solid']").locator("..").click();
   await page.click("#next");
-  // Part 4 → review → submit
-  await page.fill("[data-text='anything']", "No travel courses.");
-  await page.click("#next");
+  // → review → submit
   await expect(page.getByText("Check your answers")).toBeVisible();
   await expect(page.locator("#review")).toContainText("Other: Teacher");
   await page.click("#next");
