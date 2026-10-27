@@ -1,0 +1,1714 @@
+[
+{
+"id": "q01-01",
+"survey": {
+"background": [
+"Banking / finance",
+"Private equity / VC / investing"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "Expert",
+"Communication": "Some",
+"Economics": "Some",
+"Entrepreneurship": "None",
+"Finance": "Expert",
+"Global business": "Some",
+"Health care": "Some",
+"Leadership & people": "Some",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Solid",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Entrepreneurship": "Fluent",
+"Finance": "Deep",
+"Global business": "Fluent",
+"Health care": "Fluent",
+"Leadership & people": "Solid",
+"Legal & ethics": "Fluent",
+"Marketing": "Skip",
+"Operations & analytics": "Fluent",
+"Real estate": "Skip",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Healthcare",
+"Industrials",
+"Financial services",
+"Technology"
+],
+"majors": [
+"Finance"
+],
+"recruiting": "Mature recruiting \u2014 busy first fall, lighter after",
+"roles": [
+"Private equity"
+],
+"skills": [
+"Excel modeling",
+"Financial modeling & valuation",
+"Accounting",
+"Basic statistics"
+],
+"topics": [
+"Negotiation",
+"Leadership"
+]
+}
+},
+{
+"id": "q02-03",
+"survey": {
+"background": [
+"Consulting"
+],
+"class": "Class of 2027",
+"depth_know": {
+"Accounting": "Some",
+"Communication": "Working",
+"Economics": "Some",
+"Entrepreneurship": "None",
+"Finance": "Some",
+"Global business": "Some",
+"Health care": "Some",
+"Leadership & people": "Working",
+"Legal & ethics": "Some",
+"Marketing": "Some",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Working",
+"Sustainability": "None",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Entrepreneurship": "Skip",
+"Finance": "Fluent",
+"Global business": "Fluent",
+"Health care": "Solid",
+"Leadership & people": "Deep",
+"Legal & ethics": "Solid",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Skip",
+"Statistics & data science": "Fluent",
+"Strategy": "Deep",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Healthcare",
+"Health & wellness"
+],
+"majors": [
+"Management",
+"Health Care Management"
+],
+"recruiting": "Enterprise / startup recruiting \u2014 busy Spring of year 1, maybe Spring of year 2",
+"roles": [
+"Strategy & operations",
+"Consulting",
+"Health care management",
+"HR / people"
+],
+"skills": [
+"Consulting frameworks",
+"Project management",
+"Excel modeling"
+],
+"topics": [
+"Leadership",
+"Negotiation",
+"Persuasion / influence"
+]
+}
+},
+{
+"id": "q03-05",
+"survey": {
+"background": [
+"Military",
+"Engineering / CS",
+"Startup / founder"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Working",
+"Economics": "Some",
+"Entrepreneurship": "Some",
+"Finance": "None",
+"Global business": "Working",
+"Health care": "None",
+"Leadership & people": "Expert",
+"Legal & ethics": "Some",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Fluent",
+"Economics": "Solid",
+"Entrepreneurship": "Solid",
+"Finance": "Solid",
+"Global business": "Solid",
+"Health care": "Skip",
+"Leadership & people": "Fluent",
+"Legal & ethics": "Solid",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Skip",
+"Statistics & data science": "Solid",
+"Strategy": "Deep",
+"Sustainability": "Skip",
+"Technology & AI": "Deep"
+},
+"industries": [
+"Aerospace & defense",
+"AI / software",
+"Government / public sector"
+],
+"majors": [
+"Business Economics & Public Policy",
+"Operations, Information & Decisions"
+],
+"recruiting": "Enterprise / startup recruiting \u2014 busy Spring of year 1, maybe Spring of year 2",
+"roles": [
+"Product management",
+"Strategy & operations"
+],
+"skills": [
+"Project management",
+"People management",
+"Basic statistics",
+"Public speaking"
+],
+"topics": [
+"Geopolitics",
+"Ethics",
+"Data & AI tools"
+]
+}
+},
+{
+"id": "q04-02",
+"survey": {
+"background": [
+"Military",
+"Operations"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Working",
+"Economics": "Some",
+"Entrepreneurship": "Some",
+"Finance": "None",
+"Global business": "Some",
+"Health care": "None",
+"Leadership & people": "Expert",
+"Legal & ethics": "Some",
+"Marketing": "None",
+"Operations & analytics": "Working",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "None"
+},
+"depth_want": {
+"Accounting": "Solid",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Entrepreneurship": "Deep",
+"Finance": "Deep",
+"Global business": "Skip",
+"Health care": "Skip",
+"Leadership & people": "Fluent",
+"Legal & ethics": "Solid",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Fluent",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Industrials",
+"Other: home services (HVAC, plumbing)"
+],
+"majors": [
+"Entrepreneurship & Innovation",
+"Finance"
+],
+"recruiting": "Not recruiting",
+"roles": [
+"Founder / startup",
+"General management",
+"Private equity"
+],
+"skills": [
+"Project management",
+"People management",
+"Supply chain"
+],
+"topics": [
+"Negotiation",
+"Leadership",
+"Personal finance"
+]
+}
+},
+{
+"id": "q05-07",
+"survey": {
+"background": [
+"Consulting"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "Some",
+"Communication": "Some",
+"Economics": "Some",
+"Entrepreneurship": "None",
+"Finance": "Some",
+"Global business": "None",
+"Health care": "Working",
+"Leadership & people": "Some",
+"Legal & ethics": "None",
+"Marketing": "Working",
+"Operations & analytics": "Working",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Working",
+"Sustainability": "None",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Fluent",
+"Economics": "Fluent",
+"Entrepreneurship": "Skip",
+"Finance": "Solid",
+"Global business": "Skip",
+"Health care": "Deep",
+"Leadership & people": "Solid",
+"Legal & ethics": "Fluent",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Fluent",
+"Statistics & data science": "Fluent",
+"Strategy": "Deep",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Healthcare",
+"Pharma / biotech",
+"Medical devices"
+],
+"majors": [
+"Health Care Management",
+"Strategic Management"
+],
+"recruiting": "Mature recruiting \u2014 busy first fall, lighter after",
+"roles": [
+"Consulting",
+"Corporate development / M&A"
+],
+"skills": [
+"Excel modeling",
+"Consulting frameworks",
+"Marketing analytics",
+"Basic statistics"
+],
+"topics": [
+"Negotiation"
+]
+}
+},
+{
+"id": "q06-04",
+"survey": {
+"background": [
+"Data / analytics",
+"Engineering / CS",
+"Startup / founder"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "Some",
+"Communication": "Some",
+"Economics": "Some",
+"Entrepreneurship": "Some",
+"Finance": "Some",
+"Global business": "None",
+"Health care": "None",
+"Leadership & people": "Some",
+"Legal & ethics": "None",
+"Marketing": "Some",
+"Operations & analytics": "Working",
+"Real estate": "None",
+"Statistics & data science": "Expert",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "Working"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Fluent",
+"Economics": "Fluent",
+"Entrepreneurship": "Solid",
+"Finance": "Solid",
+"Global business": "Skip",
+"Health care": "Skip",
+"Leadership & people": "Fluent",
+"Marketing": "Deep",
+"Operations & analytics": "Solid",
+"Real estate": "Skip",
+"Statistics & data science": "Deep",
+"Strategy": "Solid",
+"Sustainability": "Skip",
+"Technology & AI": "Solid"
+},
+"industries": [
+"Consumer",
+"Retail / e-commerce",
+"AI / software"
+],
+"majors": [
+"Marketing",
+"Statistics",
+"Entrepreneurship & Innovation"
+],
+"recruiting": "Enterprise / startup recruiting \u2014 busy Spring of year 1, maybe Spring of year 2",
+"roles": [
+"Marketing / brand",
+"Founder / startup",
+"Product marketing"
+],
+"skills": [
+"SQL / databases",
+"Python / coding",
+"Excel modeling",
+"Basic statistics",
+"Marketing analytics",
+"Machine learning"
+],
+"topics": [
+"Brand / consumer behavior",
+"Data & AI tools",
+"Negotiation"
+]
+}
+},
+{
+"id": "q07-09",
+"survey": {
+"background": [
+"Medicine / healthcare",
+"Nonprofit"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Working",
+"Economics": "Some",
+"Entrepreneurship": "None",
+"Finance": "None",
+"Global business": "Working",
+"Health care": "Expert",
+"Leadership & people": "Working",
+"Legal & ethics": "Working",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "Working",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "None"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Solid",
+"Economics": "Solid",
+"Entrepreneurship": "Fluent",
+"Finance": "Solid",
+"Global business": "Solid",
+"Health care": "Deep",
+"Leadership & people": "Deep",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Skip",
+"Statistics & data science": "Solid",
+"Strategy": "Deep",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Healthcare",
+"Health & wellness",
+"Nonprofit"
+],
+"majors": [
+"Health Care Management",
+"Social Impact & Responsibility"
+],
+"recruiting": "Mature recruiting \u2014 busy first fall, lighter after",
+"roles": [
+"Health care management",
+"Social impact",
+"Consulting",
+"Nonprofit leadership"
+],
+"skills": [
+"Basic statistics",
+"Project management"
+],
+"topics": [
+"Leadership",
+"Negotiation",
+"Geopolitics",
+"Public speaking"
+]
+}
+},
+{
+"id": "q08-01",
+"survey": {
+"background": [
+"Family business",
+"Operations"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "Some",
+"Communication": "Some",
+"Economics": "Some",
+"Entrepreneurship": "Some",
+"Finance": "Some",
+"Global business": "Some",
+"Health care": "None",
+"Leadership & people": "Working",
+"Legal & ethics": "None",
+"Marketing": "None",
+"Operations & analytics": "Expert",
+"Real estate": "Some",
+"Statistics & data science": "Some",
+"Strategy": "Some",
+"Sustainability": "Some",
+"Technology & AI": "None"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Entrepreneurship": "Fluent",
+"Finance": "Solid",
+"Global business": "Solid",
+"Health care": "Skip",
+"Leadership & people": "Deep",
+"Legal & ethics": "Fluent",
+"Marketing": "Skip",
+"Operations & analytics": "Deep",
+"Real estate": "Skip",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Sustainability": "Fluent",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Industrials"
+],
+"majors": [
+"Management",
+"Operations, Information & Decisions"
+],
+"recruiting": "Not recruiting",
+"roles": [
+"Family business",
+"General management",
+"Strategy & operations"
+],
+"skills": [
+"Project management",
+"Excel modeling",
+"People management",
+"Supply chain"
+],
+"topics": [
+"Negotiation",
+"Leadership",
+"Geopolitics"
+]
+}
+},
+{
+"id": "q09-06",
+"survey": {
+"background": [
+"Media / entertainment / creative"
+],
+"class": "Class of 2027",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Working",
+"Economics": "None",
+"Entrepreneurship": "Some",
+"Finance": "None",
+"Global business": "Working",
+"Health care": "None",
+"Leadership & people": "Working",
+"Legal & ethics": "Some",
+"Marketing": "Some",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "None",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "None"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Solid",
+"Economics": "Skip",
+"Entrepreneurship": "Fluent",
+"Finance": "Fluent",
+"Global business": "Solid",
+"Health care": "Skip",
+"Leadership & people": "Fluent",
+"Legal & ethics": "Fluent",
+"Marketing": "Deep",
+"Operations & analytics": "Fluent",
+"Real estate": "Skip",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Sustainability": "Fluent",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Luxury / fashion",
+"Consumer",
+"Media & entertainment"
+],
+"majors": [
+"Marketing"
+],
+"recruiting": "Mature recruiting \u2014 busy first fall, lighter after",
+"roles": [
+"Marketing / brand"
+],
+"skills": [
+"None of these"
+],
+"topics": [
+"Brand / consumer behavior",
+"Persuasion / influence",
+"Negotiation"
+]
+}
+},
+{
+"id": "q10-03",
+"survey": {
+"background": [
+"Engineering / CS"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Some",
+"Economics": "Some",
+"Entrepreneurship": "Some",
+"Finance": "None",
+"Global business": "Some",
+"Health care": "None",
+"Leadership & people": "None",
+"Legal & ethics": "None",
+"Marketing": "None",
+"Operations & analytics": "Working",
+"Real estate": "None",
+"Statistics & data science": "Working",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "Expert"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Solid",
+"Economics": "Solid",
+"Entrepreneurship": "Solid",
+"Finance": "Solid",
+"Global business": "Solid",
+"Health care": "Fluent",
+"Leadership & people": "Solid",
+"Legal & ethics": "Fluent",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Fluent",
+"Statistics & data science": "Deep",
+"Strategy": "Solid",
+"Sustainability": "Fluent",
+"Technology & AI": "Solid"
+},
+"industries": [
+"AI / software",
+"Industrials",
+"Consumer",
+"Transportation / mobility"
+],
+"majors": [
+"Not sure \u2014 suggest some for me",
+"Behavioral Economics",
+"Operations, Information & Decisions"
+],
+"recruiting": "Mature recruiting \u2014 busy first fall, lighter after",
+"roles": [
+"Undecided",
+"Product management",
+"Founder / startup",
+"Consulting"
+],
+"skills": [
+"SQL / databases",
+"Python / coding",
+"Basic statistics",
+"Project management"
+],
+"topics": [
+"Data & AI tools",
+"Leadership",
+"Geopolitics",
+"Public speaking"
+]
+}
+},
+{
+"id": "n1-01",
+"survey": {
+"background": [
+"Banking / finance",
+"Private equity / VC / investing"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "Working",
+"Communication": "Working",
+"Economics": "Working",
+"Entrepreneurship": "None",
+"Finance": "Expert",
+"Global business": "Working",
+"Health care": "Some",
+"Leadership & people": "Some",
+"Legal & ethics": "Some",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Some",
+"Sustainability": "Working",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Solid",
+"Communication": "Fluent",
+"Economics": "Solid",
+"Entrepreneurship": "Fluent",
+"Finance": "Deep",
+"Global business": "Deep",
+"Health care": "Fluent",
+"Leadership & people": "Solid",
+"Legal & ethics": "Solid",
+"Marketing": "Skip",
+"Operations & analytics": "Fluent",
+"Real estate": "Skip",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Sustainability": "Solid",
+"Technology & AI": "Fluent"
+},
+"frontload": "Yes \u2014 get core done early",
+"industries": [
+"Financial services",
+"Healthcare",
+"Fintech"
+],
+"majors": [
+"Impact, Value, and Sustainable Business",
+"Finance"
+],
+"recruit_terms": [
+"Spring of year 1",
+"Fall of year 2"
+],
+"roles": [
+"Private equity",
+"Social impact"
+],
+"skills": [
+"Excel modeling",
+"Accounting",
+"Basic statistics",
+"Financial modeling & valuation"
+],
+"topics": [
+"Negotiation",
+"Geopolitics",
+"Ethics"
+]
+}
+},
+{
+"id": "n2-04",
+"survey": {
+"background": [
+"Consulting",
+"Other: People analytics / HR"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "Some",
+"Communication": "Working",
+"Economics": "Some",
+"Finance": "Some",
+"Global business": "Some",
+"Health care": "Some",
+"Leadership & people": "Working",
+"Legal & ethics": "Some",
+"Marketing": "Some",
+"Operations & analytics": "Working",
+"Real estate": "None",
+"Statistics & data science": "Working",
+"Strategy": "Working",
+"Sustainability": "None",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Finance": "Fluent",
+"Global business": "Fluent",
+"Health care": "Fluent",
+"Leadership & people": "Deep",
+"Legal & ethics": "Solid",
+"Marketing": "Skip",
+"Operations & analytics": "Solid",
+"Real estate": "Skip",
+"Statistics & data science": "Solid",
+"Strategy": "Solid",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"frontload": "Yes \u2014 get core done early",
+"industries": [
+"Consumer",
+"Healthcare",
+"Retail / e-commerce"
+],
+"majors": [
+"Social and Governance Factors for Business",
+"Leading Across Differences",
+"Management"
+],
+"recruit_terms": [
+"Fall of year 1"
+],
+"roles": [
+"General management",
+"Strategy & operations",
+"HR / people"
+],
+"skills": [
+"Excel modeling",
+"SQL / databases",
+"Consulting frameworks",
+"Basic statistics"
+],
+"topics": [
+"Leadership",
+"Negotiation",
+"Data & AI tools"
+]
+}
+},
+{
+"id": "n3-02",
+"survey": {
+"background": [
+"Military",
+"Operations"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Some",
+"Economics": "None",
+"Entrepreneurship": "None",
+"Finance": "None",
+"Global business": "Some",
+"Health care": "None",
+"Leadership & people": "Working",
+"Marketing": "None",
+"Operations & analytics": "Working",
+"Real estate": "None",
+"Statistics & data science": "None",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "None"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Entrepreneurship": "Skip",
+"Finance": "Fluent",
+"Global business": "Skip",
+"Health care": "Skip",
+"Leadership & people": "Deep",
+"Marketing": "Skip",
+"Operations & analytics": "Deep",
+"Real estate": "Skip",
+"Statistics & data science": "Solid",
+"Strategy": "Solid",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"frontload": "Yes \u2014 get core done early",
+"industries": [
+"Industrials",
+"Consumer",
+"Transportation / mobility"
+],
+"majors": [
+"Organizational Effectiveness",
+"Operations, Information and Decisions"
+],
+"recruit_terms": [
+"Fall of year 1",
+"Spring of year 1"
+],
+"roles": [
+"General management",
+"Strategy & operations",
+"Operations / supply chain"
+],
+"skills": [
+"Project management",
+"Excel modeling",
+"People management",
+"Supply chain"
+],
+"topics": [
+"Leadership",
+"Negotiation",
+"Public speaking"
+]
+}
+},
+{
+"id": "n4-05",
+"survey": {
+"background": [
+"Engineering / CS",
+"Product"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Some",
+"Economics": "Some",
+"Entrepreneurship": "Working",
+"Finance": "Some",
+"Global business": "Working",
+"Health care": "None",
+"Leadership & people": "Some",
+"Legal & ethics": "None",
+"Marketing": "Some",
+"Operations & analytics": "Working",
+"Real estate": "None",
+"Statistics & data science": "Working",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "Working"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Fluent",
+"Economics": "Fluent",
+"Entrepreneurship": "Deep",
+"Finance": "Solid",
+"Global business": "Solid",
+"Health care": "Skip",
+"Leadership & people": "Deep",
+"Legal & ethics": "Solid",
+"Marketing": "Solid",
+"Operations & analytics": "Fluent",
+"Real estate": "Skip",
+"Statistics & data science": "Skip",
+"Strategy": "Solid",
+"Sustainability": "Skip",
+"Technology & AI": "Solid"
+},
+"frontload": "Yes \u2014 get core done early",
+"industries": [
+"AI / software",
+"Technology"
+],
+"majors": [
+"Leading Across Differences",
+"Entrepreneurship & Innovation"
+],
+"recruit_terms": [
+"Not recruiting"
+],
+"roles": [
+"Founder / startup"
+],
+"skills": [
+"SQL / databases",
+"Python / coding",
+"Project management",
+"Basic statistics",
+"Product management"
+],
+"topics": [
+"Leadership",
+"Negotiation",
+"Persuasion / influence"
+]
+}
+},
+{
+"id": "t01",
+"survey": {
+"class": "Class of 2028",
+"topics": [
+"Negotiation",
+"Leadership"
+],
+"majors": [
+"Finance",
+"Management"
+],
+"recruit_terms": [
+"Fall of year 1"
+],
+"frontload": "Yes \u2014 get core done early",
+"background": [
+"Banking / finance",
+"Private equity / VC / investing"
+],
+"skills": [
+"Excel modeling",
+"Financial modeling & valuation",
+"Accounting"
+],
+"roles": [
+"Private equity",
+"Growth equity"
+],
+"industries": [
+"Financial services",
+"Technology"
+],
+"depth_know": {
+"Finance": "Expert",
+"Accounting": "Expert",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Statistics & data science": "Some",
+"Strategy": "Working",
+"Leadership & people": "Some",
+"Entrepreneurship": "None",
+"Economics": "Some",
+"Legal & ethics": "Some",
+"Real estate": "None",
+"Health care": "None",
+"Technology & AI": "Some",
+"Global business": "None",
+"Sustainability": "None",
+"Communication": "Working"
+},
+"depth_want": {
+"Finance": "Deep",
+"Accounting": "Skip",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Leadership & people": "Solid",
+"Entrepreneurship": "Fluent",
+"Economics": "Fluent",
+"Legal & ethics": "Fluent",
+"Real estate": "Skip",
+"Health care": "Skip",
+"Technology & AI": "Fluent",
+"Global business": "Skip",
+"Sustainability": "Skip",
+"Communication": "Fluent"
+}
+}
+},
+{
+"id": "t02",
+"survey": {
+"class": "Class of 2028",
+"topics": [
+"Data & AI tools",
+"Public speaking",
+"Persuasion / influence"
+],
+"majors": [
+"Artificial Intelligence for Business",
+"Marketing"
+],
+"recruit_terms": [
+"Fall of year 1",
+"Spring of year 1"
+],
+"frontload": "Yes \u2014 get core done early",
+"background": [
+"Engineering / CS"
+],
+"skills": [
+"Python / coding",
+"SQL / databases",
+"Machine learning",
+"Basic statistics"
+],
+"roles": [
+"Product management"
+],
+"industries": [
+"AI / software",
+"Technology",
+"Fintech"
+],
+"depth_know": {
+"Finance": "Some",
+"Accounting": "None",
+"Marketing": "None",
+"Operations & analytics": "Working",
+"Statistics & data science": "Working",
+"Strategy": "Some",
+"Leadership & people": "Some",
+"Entrepreneurship": "Some",
+"Economics": "Some",
+"Legal & ethics": "None",
+"Real estate": "None",
+"Health care": "None",
+"Technology & AI": "Expert",
+"Global business": "None",
+"Sustainability": "None",
+"Communication": "Some"
+},
+"depth_want": {
+"Finance": "Fluent",
+"Accounting": "Fluent",
+"Marketing": "Solid",
+"Operations & analytics": "Solid",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Leadership & people": "Solid",
+"Entrepreneurship": "Solid",
+"Economics": "Fluent",
+"Legal & ethics": "Fluent",
+"Real estate": "Skip",
+"Health care": "Skip",
+"Technology & AI": "Deep",
+"Global business": "Fluent",
+"Sustainability": "Skip",
+"Communication": "Deep"
+}
+}
+},
+{
+"id": "t03",
+"survey": {
+"class": "Class of 2028",
+"topics": [
+"Leadership",
+"Negotiation"
+],
+"majors": [
+"Health Care Management",
+"Operations, Information and Decisions"
+],
+"recruit_terms": [
+"Fall of year 1",
+"Spring of year 1"
+],
+"frontload": "No \u2014 spread core across my semesters",
+"background": [
+"Medicine / healthcare"
+],
+"skills": [
+"Project management",
+"People management"
+],
+"roles": [
+"Health care management",
+"Operations / supply chain"
+],
+"industries": [
+"Healthcare",
+"Health & wellness"
+],
+"depth_know": {
+"Finance": "None",
+"Accounting": "None",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Statistics & data science": "None",
+"Strategy": "None",
+"Leadership & people": "Working",
+"Entrepreneurship": "None",
+"Economics": "None",
+"Legal & ethics": "Some",
+"Real estate": "None",
+"Health care": "Expert",
+"Technology & AI": "None",
+"Global business": "None",
+"Sustainability": "None",
+"Communication": "Working"
+},
+"depth_want": {
+"Finance": "Solid",
+"Accounting": "Solid",
+"Marketing": "Skip",
+"Operations & analytics": "Deep",
+"Statistics & data science": "Solid",
+"Strategy": "Solid",
+"Leadership & people": "Fluent",
+"Entrepreneurship": "Skip",
+"Economics": "Fluent",
+"Legal & ethics": "Fluent",
+"Real estate": "Skip",
+"Health care": "Deep",
+"Technology & AI": "Fluent",
+"Global business": "Skip",
+"Sustainability": "Skip",
+"Communication": "Fluent"
+}
+}
+},
+{
+"id": "t04",
+"survey": {
+"class": "Class of 2028",
+"topics": [
+"Negotiation",
+"Leadership",
+"Personal finance"
+],
+"majors": [
+"Real Estate"
+],
+"recruit_terms": [
+"Not recruiting"
+],
+"frontload": "No preference",
+"background": [
+"Real estate",
+"Family business",
+"Banking / finance"
+],
+"skills": [
+"Excel modeling",
+"Financial modeling & valuation",
+"Accounting",
+"Legal / contracts"
+],
+"roles": [
+"Real estate investing / development",
+"Family business"
+],
+"industries": [
+"Real estate"
+],
+"depth_know": {
+"Finance": "Working",
+"Accounting": "Working",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Statistics & data science": "None",
+"Strategy": "Some",
+"Leadership & people": "Some",
+"Entrepreneurship": "Some",
+"Economics": "Some",
+"Legal & ethics": "Some",
+"Real estate": "Expert",
+"Health care": "None",
+"Technology & AI": "None",
+"Global business": "None",
+"Sustainability": "Some",
+"Communication": "Some"
+},
+"depth_want": {
+"Finance": "Deep",
+"Accounting": "Fluent",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Statistics & data science": "Skip",
+"Strategy": "Solid",
+"Leadership & people": "Deep",
+"Entrepreneurship": "Fluent",
+"Economics": "Fluent",
+"Legal & ethics": "Solid",
+"Real estate": "Deep",
+"Health care": "Skip",
+"Technology & AI": "Fluent",
+"Global business": "Skip",
+"Sustainability": "Fluent",
+"Communication": "Solid"
+}
+}
+},
+{
+"id": "t05",
+"survey": {
+"class": "Class of 2027",
+"topics": [
+"Geopolitics",
+"Ethics"
+],
+"majors": [
+"Business Economics and Public Policy",
+"Finance"
+],
+"recruit_terms": [
+"Fall of year 2"
+],
+"frontload": "No preference",
+"background": [
+"Government / policy"
+],
+"skills": [
+"Basic statistics",
+"Excel modeling",
+"Public speaking"
+],
+"roles": [
+"Policy / government",
+"Social impact",
+"Sustainability / ESG"
+],
+"industries": [
+"Climate / energy",
+"Government / public sector",
+"Financial services"
+],
+"depth_know": {
+"Finance": "Some",
+"Accounting": "Some",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Statistics & data science": "Working",
+"Strategy": "Some",
+"Leadership & people": "Some",
+"Entrepreneurship": "None",
+"Economics": "Expert",
+"Legal & ethics": "Working",
+"Real estate": "None",
+"Health care": "Working",
+"Technology & AI": "Some",
+"Global business": "Working",
+"Sustainability": "Working",
+"Communication": "Working"
+},
+"depth_want": {
+"Finance": "Deep",
+"Accounting": "Fluent",
+"Marketing": "Skip",
+"Operations & analytics": "Fluent",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Leadership & people": "Fluent",
+"Entrepreneurship": "Skip",
+"Economics": "Skip",
+"Legal & ethics": "Solid",
+"Real estate": "Skip",
+"Health care": "Skip",
+"Technology & AI": "Fluent",
+"Global business": "Deep",
+"Sustainability": "Deep",
+"Communication": "Fluent"
+}
+}
+},
+{
+"id": "t06",
+"survey": {
+"class": "Class of 2028",
+"topics": [
+"Brand / consumer behavior",
+"Persuasion / influence"
+],
+"majors": [
+"Marketing",
+"Marketing and Operations Management"
+],
+"recruit_terms": [
+"Spring of year 1"
+],
+"frontload": "No \u2014 spread core across my semesters",
+"background": [
+"Marketing"
+],
+"skills": [
+"Marketing analytics",
+"Market research",
+"Project management",
+"Public speaking"
+],
+"roles": [
+"Marketing / brand",
+"Strategy & operations"
+],
+"industries": [
+"Luxury / fashion",
+"Consumer",
+"Retail / e-commerce"
+],
+"depth_know": {
+"Finance": "Some",
+"Accounting": "None",
+"Marketing": "Expert",
+"Operations & analytics": "Some",
+"Statistics & data science": "Some",
+"Strategy": "Working",
+"Leadership & people": "Some",
+"Entrepreneurship": "None",
+"Economics": "Some",
+"Legal & ethics": "None",
+"Real estate": "None",
+"Health care": "None",
+"Technology & AI": "Some",
+"Global business": "Working",
+"Sustainability": "Some",
+"Communication": "Working"
+},
+"depth_want": {
+"Finance": "Solid",
+"Accounting": "Fluent",
+"Marketing": "Solid",
+"Operations & analytics": "Deep",
+"Statistics & data science": "Solid",
+"Strategy": "Deep",
+"Leadership & people": "Solid",
+"Entrepreneurship": "Fluent",
+"Economics": "Fluent",
+"Legal & ethics": "Skip",
+"Real estate": "Skip",
+"Health care": "Skip",
+"Technology & AI": "Fluent",
+"Global business": "Deep",
+"Sustainability": "Fluent",
+"Communication": "Fluent"
+}
+}
+},
+{
+"id": "x-2027",
+"survey": {
+"background": [
+"Banking / finance",
+"Private equity / VC / investing"
+],
+"class": "Class of 2027",
+"depth_know": {
+"Accounting": "Expert",
+"Communication": "Some",
+"Economics": "Some",
+"Entrepreneurship": "None",
+"Finance": "Expert",
+"Global business": "Some",
+"Health care": "Some",
+"Leadership & people": "Some",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Solid",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Entrepreneurship": "Fluent",
+"Finance": "Deep",
+"Global business": "Fluent",
+"Health care": "Fluent",
+"Leadership & people": "Solid",
+"Legal & ethics": "Fluent",
+"Marketing": "Skip",
+"Operations & analytics": "Fluent",
+"Real estate": "Skip",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Healthcare",
+"Industrials",
+"Financial services",
+"Technology"
+],
+"majors": [
+"Finance"
+],
+"recruiting": "Mature recruiting \u2014 busy first fall, lighter after",
+"roles": [
+"Private equity"
+],
+"skills": [
+"Excel modeling",
+"Financial modeling & valuation",
+"Accounting",
+"Basic statistics"
+],
+"topics": [
+"Negotiation",
+"Leadership"
+]
+}
+},
+{
+"id": "x-five-majors",
+"survey": {
+"background": [
+"Consulting"
+],
+"class": "Class of 2027",
+"depth_know": {
+"Accounting": "Some",
+"Communication": "Working",
+"Economics": "Some",
+"Entrepreneurship": "None",
+"Finance": "Some",
+"Global business": "Some",
+"Health care": "Some",
+"Leadership & people": "Working",
+"Legal & ethics": "Some",
+"Marketing": "Some",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Working",
+"Sustainability": "None",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Entrepreneurship": "Skip",
+"Finance": "Fluent",
+"Global business": "Fluent",
+"Health care": "Solid",
+"Leadership & people": "Deep",
+"Legal & ethics": "Solid",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Skip",
+"Statistics & data science": "Fluent",
+"Strategy": "Deep",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Healthcare",
+"Health & wellness"
+],
+"majors": [
+"Finance",
+"Entrepreneurship & Innovation",
+"Marketing",
+"Management",
+"Real Estate"
+],
+"recruiting": "Enterprise / startup recruiting \u2014 busy Spring of year 1, maybe Spring of year 2",
+"roles": [
+"Strategy & operations",
+"Consulting",
+"Health care management",
+"HR / people"
+],
+"skills": [
+"Consulting frameworks",
+"Project management",
+"Excel modeling"
+],
+"topics": [
+"Leadership",
+"Negotiation",
+"Persuasion / influence"
+]
+}
+},
+{
+"id": "x-not-sure",
+"survey": {
+"background": [
+"Military",
+"Engineering / CS",
+"Startup / founder"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Working",
+"Economics": "Some",
+"Entrepreneurship": "Some",
+"Finance": "None",
+"Global business": "Working",
+"Health care": "None",
+"Leadership & people": "Expert",
+"Legal & ethics": "Some",
+"Marketing": "None",
+"Operations & analytics": "Some",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "Some"
+},
+"depth_want": {
+"Accounting": "Fluent",
+"Communication": "Fluent",
+"Economics": "Solid",
+"Entrepreneurship": "Solid",
+"Finance": "Solid",
+"Global business": "Solid",
+"Health care": "Skip",
+"Leadership & people": "Fluent",
+"Legal & ethics": "Solid",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Skip",
+"Statistics & data science": "Solid",
+"Strategy": "Deep",
+"Sustainability": "Skip",
+"Technology & AI": "Deep"
+},
+"industries": [
+"Aerospace & defense",
+"AI / software",
+"Government / public sector"
+],
+"majors": [
+"Not sure \u2014 suggest some for me"
+],
+"recruiting": "Enterprise / startup recruiting \u2014 busy Spring of year 1, maybe Spring of year 2",
+"roles": [
+"Product management",
+"Strategy & operations"
+],
+"skills": [
+"Project management",
+"People management",
+"Basic statistics",
+"Public speaking"
+],
+"topics": [
+"Geopolitics",
+"Ethics",
+"Data & AI tools"
+]
+}
+},
+{
+"id": "x-no-majors",
+"survey": {
+"background": [
+"Military",
+"Operations"
+],
+"class": "Class of 2028",
+"depth_know": {
+"Accounting": "None",
+"Communication": "Working",
+"Economics": "Some",
+"Entrepreneurship": "Some",
+"Finance": "None",
+"Global business": "Some",
+"Health care": "None",
+"Leadership & people": "Expert",
+"Legal & ethics": "Some",
+"Marketing": "None",
+"Operations & analytics": "Working",
+"Real estate": "None",
+"Statistics & data science": "Some",
+"Strategy": "Some",
+"Sustainability": "None",
+"Technology & AI": "None"
+},
+"depth_want": {
+"Accounting": "Solid",
+"Communication": "Solid",
+"Economics": "Fluent",
+"Entrepreneurship": "Deep",
+"Finance": "Deep",
+"Global business": "Skip",
+"Health care": "Skip",
+"Leadership & people": "Fluent",
+"Legal & ethics": "Solid",
+"Marketing": "Fluent",
+"Operations & analytics": "Solid",
+"Real estate": "Fluent",
+"Statistics & data science": "Fluent",
+"Strategy": "Solid",
+"Sustainability": "Skip",
+"Technology & AI": "Fluent"
+},
+"industries": [
+"Industrials",
+"Other: home services (HVAC, plumbing)"
+],
+"majors": [],
+"recruiting": "Not recruiting",
+"roles": [
+"Founder / startup",
+"General management",
+"Private equity"
+],
+"skills": [
+"Project management",
+"People management",
+"Supply chain"
+],
+"topics": [
+"Negotiation",
+"Leadership",
+"Personal finance"
+],
+"recruit_terms": [
+"Not recruiting"
+]
+}
+}
+]

@@ -5,34 +5,32 @@ async function takeSurvey(page, opts = {}) {
   await page.goto("/index.html");
   await expect(page.getByText("Privacy:")).toBeVisible();
   const pick = async (qid, value) => page.locator(`.q[data-q='${qid}'] label:has(input[value="${value}"])`).click();
-  // Part 1
-  await pick("class", opts.klass || "Class of 2028");
+  const next = () => page.click("#next");
+  await next();                                   // welcome → question 1 (one question per screen)
+  await pick("class", opts.klass || "Class of 2028"); await next();
   await pick("background", "Consulting");
   await pick("background", "__other");
-  await page.fill("[data-other='background']", "Teacher");
-  await pick("skills", "Excel modeling");
-  await page.click("#next");
-  // Part 2
+  await page.fill("[data-other='background']", "Teacher"); await next();
+  await page.keyboard.press("c");                 // keyboard: letter C picks the third option (Excel modeling)
+  await expect(page.locator("input[name='skills'][value='Excel modeling']")).toBeChecked(); await next();
   await pick("roles", "Founder / startup");
-  await pick("roles", "Product management");
-  await pick("industries", "AI / software");
-  await pick("topics", "Negotiation");
+  await pick("roles", "Product management"); await next();
+  await pick("industries", "AI / software"); await next();
+  await pick("topics", "Negotiation"); await next();
   await pick("recruit_terms", "Spring of year 1");
-  await pick("recruit_terms", "Fall of year 2");
-  await pick("frontload", opts.frontload || "Yes — get core done early");
-  await page.click("#next");
-  // Part 3
+  await pick("recruit_terms", "Fall of year 2"); await next();
+  await pick("frontload", opts.frontload || "Yes — get core done early"); await page.keyboard.press("Enter");
   await pick("majors", "Finance");
-  await pick("majors", "Entrepreneurship & Innovation");
+  await pick("majors", "Entrepreneurship & Innovation"); await next();
   await page.locator("input[name='depth_know__0'][value='Some']").locator("..").click();
-  await page.locator("input[name='depth_want__0'][value='Solid']").locator("..").click();
-  await page.click("#next");
+  await page.locator("input[name='depth_want__0'][value='Solid']").locator("..").click(); await next();
   // → review → submit
   await expect(page.getByText("Check your answers")).toBeVisible();
   await expect(page.locator("#review")).toContainText("Other: Teacher");
-  await page.click("#next");
+  await next();
   await page.waitForURL(/board\.html/);
 }
+const view = (page, v) => page.click(`.side a[data-go='${v}']`);
 
 test.beforeEach(async ({ page }) => {
   page.on("pageerror", e => { throw new Error("Page error: " + e.message); });
@@ -47,46 +45,57 @@ test.beforeEach(async ({ page }) => {
 
 test("survey → board shows summary, Start here, recommendations and privacy", async ({ page }) => {
   await takeSurvey(page);
+  await expect(page.locator(".side a.go.on")).toHaveText("Overview");
   await expect(page.locator(".summ-h")).toHaveText("Your plan");
-  await expect(page.getByText("Start here.")).toBeVisible();
-  await expect(page.locator(".reason.best, .reason.poss").first()).toBeVisible();
+  await expect(page.locator(".kpi")).toHaveCount(4);
+  await expect(page.locator(".tl")).toBeVisible();
   await expect(page.getByText("Not a fit")).toHaveCount(0);
   await expect(page.locator(".pv")).toContainText("Saved only in this browser");
-  await expect(page.locator("footer .privacy")).toContainText("nothing you enter is stored on a server");
+  await expect(page.locator("footer .privacy")).toContainText("Nothing you enter is stored on a server");
+  await view(page, "core");
+  await expect(page.locator(".side a.go.on")).toHaveText("Core");
+  await expect(page.getByText("Start here.")).toBeVisible();
+  await view(page, "electives");
+  await expect(page.locator(".reason.best, .reason.poss").first()).toBeVisible();
 });
 
 test("core: choosing a status and ticking a class updates the area and the calendar", async ({ page }) => {
   await takeSurvey(page);
+  await view(page, "core");
   await page.locator("label:has(input[data-core='Accounting'][value='waived'])").click();
   await expect(page.locator(".cg", { hasText: "Accounting" }).first()).toContainText("✓ waived");
   await page.locator("label:has(input[data-core='Corporate finance'][value='take'])").click();
   await page.locator("input[data-pick='FNCE 6110']").first().check();
   await expect(page.locator(".cg", { hasText: "Corporate finance" }).first()).toContainText("✓ covered");
+  await view(page, "calendar");
   await expect(page.locator(".cal [data-chip='FNCE 6110']")).toBeVisible();
 });
 
 test("electives: ✓ adds to Yes + calendar, ✕ moves to No, filters and search work", async ({ page }) => {
   await takeSurvey(page);
+  await view(page, "electives");
   const first = page.locator(".col:nth-child(2) .card").first();
   const code = await first.getAttribute("data-code");
   await first.locator("[data-decide='yes']").click();
   await expect(page.locator(`.col:nth-child(1) .card[data-code='${code}']`)).toBeVisible();
+  await view(page, "calendar");
   await expect(page.locator(`.cal [data-chip='${code}'], .tray [data-chip='${code}']`)).toBeVisible();
+  await view(page, "electives");
   const second = page.locator(".col:nth-child(2) .card").first();
   const code2 = await second.getAttribute("data-code");
   await second.locator("[data-decide='no']").click();
   await expect(page.locator(`.col:nth-child(2) .card[data-code='${code2}']`)).toHaveCount(0);
-  await page.click("[data-filter='rec']");
-  const unlabeled = await page.locator(".col:nth-child(2) .card:not(:has(.reason))").count();
-  expect(unlabeled).toBe(0);
-  await page.click("[data-filter='all']");
+  await expect(page.locator("[data-filter='rec']")).toHaveCount(0);   // "Recommended for you" filter was removed
+  await expect(page.locator(".col:nth-child(2) .card").first().locator(".reason")).toBeVisible();   // best match first
   await page.fill("#q", "Negotiations");
   await expect(page.locator(".col:nth-child(2) .card").first()).toContainText("Negotiation");
 });
 
 test("calendar: lock, invalid drop shows a pop-up, Re-suggest keeps locks", async ({ page, isMobile }) => {
   await takeSurvey(page);
+  await view(page, "electives");
   for (let i = 0; i < 3; i++) await page.locator(".col:nth-child(2) .card").first().locator("[data-decide='yes']").click();
+  await view(page, "calendar");
   const chip = page.locator(".cal .chip.sugg").first();
   const code = await chip.getAttribute("data-chip");
   await chip.locator("[data-lock]").click();
@@ -107,6 +116,7 @@ test("calendar: lock, invalid drop shows a pop-up, Re-suggest keeps locks", asyn
 
 test("add your own class, theme toggle persists, feedback opens", async ({ page }) => {
   await takeSurvey(page);
+  await view(page, "electives");
   await page.fill("#own-title", "Negotiation Workshop (Law School)");
   await page.press("#own-title", "Enter");
   await expect(page.locator(".card.own")).toContainText("Negotiation Workshop");
@@ -119,7 +129,7 @@ test("add your own class, theme toggle persists, feedback opens", async ({ page 
 
 test("redo survey is prefilled; start over clears everything", async ({ page }) => {
   await takeSurvey(page);
-  await page.click("text=Redo survey");
+  await page.click("text=Update survey");
   await expect(page.locator("input[name='class'][value='Class of 2028']")).toBeChecked();
   await expect(page.locator("[data-other='background']")).toHaveValue("Teacher");
   await page.goto("/board.html");
@@ -131,6 +141,7 @@ test("redo survey is prefilled; start over clears everything", async ({ page }) 
 
 test("recruiting semesters from the survey are the ones kept lighter", async ({ page }) => {
   await takeSurvey(page);
+  await view(page, "calendar");
   await expect(page.locator("input[data-rec=\"Spring '27\"]")).toBeChecked();
   await expect(page.locator("input[data-rec=\"Fall '27\"]")).toBeChecked();
   await expect(page.locator("input[data-rec=\"Spring '28\"]")).not.toBeChecked();
@@ -139,6 +150,7 @@ test("recruiting semesters from the survey are the ones kept lighter", async ({ 
 
 test("usage counts send event names only — never answers", async ({ page }) => {
   await takeSurvey(page);
+  await view(page, "electives");
   await page.locator(".col:nth-child(2) .card").first().locator("[data-decide='yes']").click();
   await page.locator(".col:nth-child(2) .card").first().locator("[data-decide='yes']").click();
   await page.click("[data-feedback]");
@@ -154,6 +166,9 @@ test("usage counts send event names only — never answers", async ({ page }) =>
 
 test("no sideways scrolling on the page", async ({ page }) => {
   await takeSurvey(page);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(overflow).toBeLessThanOrEqual(1);
+  for (const v of ["overview", "core", "majors", "electives", "calendar", "sources"]) {
+    await view(page, v);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow, v).toBeLessThanOrEqual(1);
+  }
 });
