@@ -161,7 +161,7 @@
   function schedule(full) {
     var fixed = {}, todo = [];
     entries().forEach(function (e) {
-      var pinned = (FIXED_CORE[e.code] || e.code === "MGMT 6100") && !e.locked && !started(e);   // always re-placed by the first-year rule
+      var pinned = (FIXED_CORE[e.code] || e.code === "MGMT 6100") && !e.locked && !started(e) && !(e.moved && !full);   // always re-placed by the first-year rule
       if (!pinned && ((e.term && started(e)) || e.locked || (!full && e.term))) fixed[e.code] = [e.term, e.slot || "Full"];
       else if (full || e.why !== "parked") todo.push(e);
     });
@@ -233,7 +233,7 @@
   // Published term data (HCM only so far): season, optional quarter, optional "year1"
   function offered(c) { var x = (D.termOffered || {}).courses || {}; var hit = codesOf(c).filter(function (k) { return x[k]; })[0]; return hit ? x[hit] : null; }
   function offTerm(c, term) { var o = offered(c); return !!(o && term && term.indexOf(o[0]) !== 0); }
-  function savePlaced(p) { Object.keys(p).forEach(function (c) { var e = S.plan[c]; e.term = p[c][0]; e.slot = p[c][1]; e.why = p[c][2]; }); }
+  function savePlaced(p) { Object.keys(p).forEach(function (c) { var e = S.plan[c]; e.term = p[c][0]; e.slot = p[c][1]; e.why = p[c][2]; delete e.moved; }); }
   // After any placement: a class must come after its prerequisite. If it doesn't, move the class that needs the
   // prerequisite to the semester after it (never a locked or already-started class).
   function fixPrereqs() {
@@ -282,6 +282,23 @@
     if (coreSubs()[c] || FIXED_CORE[c]) return false;
     if (!CORE_CODES[c]) return true;   // D.required lists every core option (fixed and flex), so it can't tell them apart
     return !!FLEX_AREA[c] && majorsFor(c).length > 0;
+  }
+  //
+  // Management class stayed on the calendar). Waived → its classes leave (only waive_only ones for a partial waiver);
+  // Placement/Substituted → the "Take" classes leave; Take → placement/substitute classes leave. A class that also counts
+  // toward a major being explored stays.
+  function dropInapplicable(areaName) {
+    D.core.forEach(function (sec) { sec.areas.forEach(function (a) {
+      if (areaName && a.name !== areaName) return;
+      var st = S.core[a.name], r = D.groupRules[a.name] || {}; if (!st) return;
+      var takeC = takeOptions(a).map(function (o) { return canon(o.code); });
+      var subC = st === "substituted" ? subOptions(a).map(function (k) { return k.code; }) : [];
+      var drop = st === "waived" ? (r.waive_only ? r.waive_only.map(canon) : a.options.map(function (o) { return canon(o.code); }))
+        : st === "substituted" ? takeC.filter(function (c) { return subC.indexOf(c) < 0; })
+        : (r.placement && Array.isArray(r.subs) ? r.subs.map(canon) : []);
+      drop.forEach(function (c) { if (S.plan[c] && !majorsFor(c).length) { delete S.plan[c]; S.changes += 1; } });
+    }); });
+    fresh();
   }
   function countsAsCore(c) { return !!CORE_CODES[c] || !!coreSubs()[c]; }
   function subOptions(area) {
@@ -428,13 +445,24 @@
         used[c] = 1; picked.push(c);
         if (started(S.plan[c])) gt += cu; else gp += cu;
       });
-      groups.push({ g: g, have: gt + gp, picked: picked });
+      groups.push({ g: g, have: gt + gp, taken: gt, picked: picked });
       if (g.min && gt + gp < g.min) open.push(g.label);
-      et += gt; ep += gp;
     });
-    et = Math.min(et, need); ep = Math.min(ep, need - et);
+    // Each section counts up to its minimum; extra only counts if the major has room beyond the sum of the minimums
+    //
+    var mins = groups.reduce(function (t, x) { return t + (x.g.min || 0); }, 0), slack = Math.max(0, need - mins);
+    var base = 0, extra = 0, taken = 0;
+    groups.forEach(function (x) {
+      if (x.g.min) { base += Math.min(x.have, x.g.min); extra += Math.max(0, x.have - x.g.min); } else extra += x.have;
+      taken += x.taken;
+    });
+    var credited = Math.min(need, base + Math.min(slack, extra));
+    groups.forEach(function (x) { x.over = x.g.min ? Math.max(0, x.have - x.g.min) : 0; });
+    var unused = Math.max(0, base + extra - credited);
+    et = Math.min(taken, credited); ep = credited - et;
+    var out_unused = unused;
     (m.checks || []).forEach(function (k) { if (!checkMet(k)) open.push(k.label); });
-    return { t: t + et, p: p + ep, need: m.total, open: open, groups: groups, counted: used, applied: applied };
+    return { t: t + et, p: p + ep, need: m.total, open: open, groups: groups, counted: used, applied: applied, unused: out_unused, slack: slack };
   }
   function majorState() {
     var rows = [], counts = {};
@@ -583,11 +611,17 @@
         var tight = g.min && availCU < 2 * g.min;
         var cands = Object.keys(BY).filter(function (c) { return inGroup(c, g) && req.indexOf(c) < 0
             && (!CORE_CODES[c] || listed(c, g.codes) || (g.include_core && !FIXED_CORE[c])); })   //
-          .sort(function (a, b) { return (!!S.plan[b] - !!S.plan[a]) || ((SCORE[b] || -99) - (SCORE[a] || -99)); })
-          .concat((g.codes || []).filter(function (c) { return !BY[canon(c)] && req.indexOf(c) < 0; }));   // listed by the major, not offered this year
+          .concat((g.codes || []).filter(function (c) { return !BY[canon(c)] && req.indexOf(c) < 0; }))   // listed by the major, not offered this year
+          // order: picked → still in Maybe (best match first, not-offered after) → ruled out last
+          .map(function (c, i) { return [c, i]; })
+          .sort(function (x, y) {
+            var rank = function (c) { return S.plan[c] ? 0 : S.dec[c] === "no" ? 3 : BY[c] ? 1 : 2; };
+            return (rank(x[0]) - rank(y[0])) || ((SCORE[y[0]] || -99) - (SCORE[x[0]] || -99)) || (x[1] - y[1]);
+          }).map(function (x) { return x[0]; });
         var key = n + "|" + gi, all = ui.showAll[key], shown = all ? cands : cands.slice(0, 8);
         var label = /elective/i.test(g.label) ? g.label : "Electives · " + g.label;
-        h += "<div class='pill'><span>" + esc(label) + "</span><span>" + goal + "</span></div>"
+        var overNote = r && x.over > 0 && r.unused > 1e-9 ? "<div class='overnote'>" + fmt(x.over) + " CU over this section's minimum — " + (r.slack > 0 ? "only " + fmt(r.slack) + " CU of extra credit can count toward the major" : "extra here doesn't count toward the " + fmt(m.total) + " CU major") + ".</div>" : "";
+        h += "<div class='pill'><span>" + esc(label) + "</span><span>" + goal + "</span></div>" + overNote
           + (g.dept ? "<div class='nt'>Any upper-level " + esc(g.dept) + " course counts — " + cands.length + " in this year's list, best matches for you first.</div>" : "")
           + shown.map(function (c) { return optRow(c, ""); }).join("")
           + (cands.length > 8 ? "<button class='seemore' data-showall='" + esc(key) + "'>" + (all ? "Show fewer" : "Show all " + cands.length) + "</button>" : "")
@@ -878,7 +912,7 @@
   // ---------- events ----------
   document.addEventListener("change", function (e) {
     var t = e.target;
-    if (t.dataset.core) { S.core[t.dataset.core] = t.value; return commit(); }
+    if (t.dataset.core) { S.core[t.dataset.core] = t.value; dropInapplicable(t.dataset.core); return commit(); }
     if (t.dataset.pick) { var pk = t.dataset.pick, wasD = isDouble(pk), mcard = t.closest && t.closest(".cg[data-major]");
       S.use = S.use || {};
       if (t.checked && mcard && noFlexMajors(pk).indexOf(mcard.dataset.major) >= 0) S.use[pk] = "major";   // ticked on a major's card
@@ -972,7 +1006,7 @@
       dragCode = null; return;
     }
     en.term = s.dataset.term || null; en.slot = slot; en.why = en.term ? "you moved this here" : "parked";
-    if (FIXED_CORE[dragCode] || dragCode === "MGMT 6100") en.locked = true;   // a moved first-year class stays where the student put it
+    en.moved = true;   // dragging moves, it doesn't lock — but a moved first-year class isn't snapped back
     dragCode = null; commit();
   });
   //
@@ -1023,7 +1057,8 @@
   }
   window.__wcp = { offered: offered, S: S, addToPlan: addToPlan, removeFromPlan: removeFromPlan, schedule: schedule, resuggest: resuggest,
                    render: render, LABEL: LABEL, SCORE: SCORE, coreState: coreState, majorState: majorState,
-                   cuOf: cuOf, flexUsed: flexUsed, usedForMajor: usedForMajor, countsAsCore: countsAsCore, inElectives: inElectives, assignment: assignment, dblUsed: dblUsed, explored: explored, TERMS: TERMS, CORE_CODES: CORE_CODES, HEAVY: HEAVY, ui: ui, A: A, started: started };   // for tests
+                   cuOf: cuOf, flexUsed: flexUsed, dropInapplicable: dropInapplicable, usedForMajor: usedForMajor, countsAsCore: countsAsCore, inElectives: inElectives, assignment: assignment, dblUsed: dblUsed, explored: explored, TERMS: TERMS, CORE_CODES: CORE_CODES, HEAVY: HEAVY, ui: ui, A: A, started: started };   // for tests
+  dropInapplicable(null);   // tidy plans saved before this rule
   placeNew();   // also moves saved fixed-core classes to their first-year terms
   // After "Update survey": keep every pick, term, lock and status; only the answers-driven parts recalibrate
   // (recommendations and majors are recomputed from the answers on load; recruiting terms follow the new answers)

@@ -553,3 +553,85 @@ test("Microeconomics: waiving covers BEPP 6110 only — BEPP 6120 is still requi
   await view(page, "calendar");
   await expect(page.locator(".cal [data-chip='BEPP 6120']")).toBeVisible();
 });
+
+test("major class lists: picked first, Maybe next, crossed-out (ruled out) last", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Real Estate"] }), "#electives");
+  await page.click("[data-filter='Real Estate']");
+  const cards = page.locator(".col:nth-child(2) .card[data-code]");
+  const no1 = await cards.nth(0).getAttribute("data-code"); await cards.nth(0).locator("[data-decide='no']").click();
+  const yes1 = await cards.nth(0).getAttribute("data-code"); await cards.nth(0).locator("[data-decide='yes']").click();
+  await view(page, "majors");
+  for (let i = 0; i < 6; i++) { const m = page.locator("[data-showall]", { hasText: "Show all" }); if (!(await m.count())) break; await m.first().click(); }
+  const order = await page.locator(".cg[data-major='Real Estate'] .pill:has-text('Real Estate electives') ~ label.opt").evaluateAll(ls => ls.map(l => [l.querySelector("input").dataset.pick, l.classList.contains("ruled"), l.querySelector("input").checked]));
+  const firstRuled = order.findIndex(x => x[1]);
+  expect(firstRuled).toBeGreaterThan(-1);
+  expect(order.slice(firstRuled).every(x => x[1])).toBe(true);        // nothing unruled after the first crossed-out row
+  expect(order.findIndex(x => x[2])).toBeLessThan(order.findIndex(x => !x[2]));   // picked before the rest
+  expect(order.map(x => x[0])).toContain(no1);
+});
+
+test("section caps: extra credit in one AI pillar doesn't fill another (3.0 of 4, with a note)", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Artificial Intelligence for Business"] }), "#majors");
+  await page.evaluate(() => { ["STAT 7230", "LGST 6420", "MGMT 7310", "MGMT 8130", "OIDD 6670"].forEach(c => window.__wcp.addToPlan(c)); window.__wcp.render(); });
+  const r = await page.evaluate(() => window.__wcp.majorState().rows[0]);
+  expect(r.t + r.p).toBeCloseTo(3, 5);
+  expect(r.open).toContain("Pillar F (Foundations)");
+  await expect(page.locator(".cg[data-major='Artificial Intelligence for Business'] .overnote")).toContainText("doesn't count toward the 4 CU major");
+  await expect(page.locator(".cg[data-major='Artificial Intelligence for Business'] .gh")).toContainText("3 of 4 CU");
+});
+
+test("section caps: a major with room beyond its minimums (BEES) lets extra count up to that room", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Business, Energy, Environment and Sustainability"] }), "#majors");
+  const r = await page.evaluate(() => { const P = window.__wcp, D = window.PLANNER_DATA, m = D.majors.find(x => x.name.startsWith("Business, Energy"));
+    m.groups[0].codes.filter(c => D.courses.some(k => k.code === c)).forEach(c => P.addToPlan(c)); P.render(); return P.majorState().rows[0]; });
+  expect(r.t + r.p).toBeCloseTo(4, 5);   // 3 CU Environmental minimum + the 1 CU of room
+});
+
+test("waiving a core area takes its classes off the calendar; Placement swaps STAT 6130 out", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Finance"] }), "#core");
+  const mm = () => page.locator(".cg", { hasText: "Marketing Management" }).first();
+  await mm().locator("label:has(input[value='take'])").click();
+  await mm().locator("input[data-pick='MKTG 6110']").check();
+  await view(page, "calendar");
+  await expect(page.locator("[data-chip='MKTG 6110']")).toHaveCount(1);
+  await view(page, "core");
+  await mm().locator("label:has(input[value='waived'])").click();
+  await view(page, "calendar");
+  await expect(page.locator("[data-chip='MKTG 6110']")).toHaveCount(0);
+  await view(page, "core");
+  const st = () => page.locator(".cg", { hasText: "Statistics" }).first();
+  await st().locator("label:has(input[value='take'])").click();
+  await st().locator("input[data-pick='STAT 6130']").check();
+  await st().locator("label:has(input[value='substituted'])").click();
+  expect(await page.evaluate(() => !!window.__wcp.S.plan["STAT 6130"])).toBe(false);
+  await view(page, "calendar");
+  await expect(page.locator("[data-chip='STAT 6130']")).toHaveCount(0);
+});
+
+test("a waived class that also counts toward an explored major stays (MKTG 6110 for Marketing)", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Marketing"] }), "#core");
+  const mm = () => page.locator(".cg", { hasText: "Marketing Management" }).first();
+  await mm().locator("label:has(input[value='take'])").click();
+  await mm().locator("input[data-pick='MKTG 6110']").check();
+  await mm().locator("label:has(input[value='waived'])").click();
+  expect(await page.evaluate(() => !!window.__wcp.S.plan["MKTG 6110"])).toBe(true);
+});
+
+test("dragging a class moves it without locking it; a moved first-year class stays put after reload", async ({ page, isMobile }) => {
+  test.skip(isMobile, "drag and drop is a desktop gesture");
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028" }), "#core");
+  await page.locator("label:has(input[data-core='Communication'][value='take'])").click();
+  await page.locator("input[data-pick='WHCP 6140']").check().catch(async () => page.locator(".cg", { hasText: "Communication" }).first().locator("input[data-pick]").first().check());
+  const code = await page.evaluate(() => Object.keys(window.__wcp.S.plan)[0]);
+  await view(page, "calendar");
+  await page.locator(`.cal [data-chip='${code}']`).dragTo(page.locator(`.cal td.slot[data-term="Spring '27"][data-slot='Q1']`));
+  if (await page.locator(".pop button").count()) {   // a full-semester class can't go in a quarter — use the Full column
+    await page.locator(".pop button").click();
+    await page.locator(`.cal [data-chip='${code}']`).dragTo(page.locator(`.cal td.slot[data-term="Spring '27"][data-slot='Full']`));
+  }
+  const e = await page.evaluate(c => window.__wcp.S.plan[c], code);
+  expect(e.term).toBe("Spring '27");
+  expect(!!e.locked).toBe(false);
+  await page.reload();
+  expect(await page.evaluate(c => window.__wcp.S.plan[c].term, code)).toBe("Spring '27");
+});
