@@ -47,24 +47,22 @@
   var FULLHALF = {}; D.fullHalf.forEach(function (c) { FULLHALF[c] = 1; });
   var DEPTH = { Skip: 0, Fluent: 1, Solid: 2, Deep: 3 }, KNOW = { None: 0, Some: 1, Working: 2, Expert: 3 };
 
-  // ---------- majors ----------
-  function inRule(code, rule) {
-    return codesOf(code).some(function (c) { return rule === "FNCE7+" ? /^FNCE [78]\d{3}$/.test(c) : rule.indexOf(c) >= 0; });
-  }
-  var MAJ = D.majors;
-  var MAJ_COLOR = { "Finance": "#2a78d6", "Entrepreneurship & Innovation": "#eb6834", "AI for Business": "#1baf7a" };
-  var MAJ_SHORT = { "Finance": "Finance", "Entrepreneurship & Innovation": "E&I", "AI for Business": "AI" };
+  // ---------- majors (each from its official department page — see D.majors[].source) ----------
+  var ALLM = {}; D.majors.forEach(function (m) { ALLM[m.name] = m; });
+  var explored = (A.majors || []).filter(function (m) { return ALLM[m]; });
+  var PALETTE = ["#2a78d6", "#eb6834", "#1baf7a", "#9b59b6", "#c0392b", "#16a085", "#d4a017", "#5d6d7e"];
+  var MAJ_COLOR = {}, MAJ_SHORT = {};
+  explored.forEach(function (m, i) { MAJ_COLOR[m] = PALETTE[i % PALETTE.length]; MAJ_SHORT[m] = ALLM[m].short || m; });
+  function upper(c, dept, incCore) { return codesOf(c).some(function (x) { return x.indexOf(dept + " ") === 0 && +x.slice(-4) >= (incCore ? 6000 : 7000); }); }
+  function listed(c, codes) { return codesOf(c).some(function (x) { return (codes || []).indexOf(x) >= 0; }); }
+  function inGroup(c, g) { return g.dept ? upper(c, g.dept, g.include_core) : listed(c, g.codes); }
+  function reqOf(m) { return (m.required || []).map(canon); }
   var REQ_MAJ = {};
-  MAJ.forEach(function (m) { m.required.forEach(function (r) { REQ_MAJ[r.code] = m.name; }); });
-  function majorsFor(code) {
-    var out = [];
-    MAJ.forEach(function (m) {
-      if (REQ_MAJ[code] === m.name || m.buckets.some(function (b) { return inRule(code, b.rule); })) out.push(m.name);
-    });
-    return out;
+  explored.forEach(function (n) { reqOf(ALLM[n]).forEach(function (c) { REQ_MAJ[c] = n; }); });
+  function eligible(c, m) {
+    return reqOf(m).indexOf(c) >= 0 || listed(c, m.core_one_of) || (m.groups || []).some(function (g) { return inGroup(c, g); });
   }
-  var explored = (A.majors || []).map(function (m) { return D.surveyMajor[m]; }).filter(Boolean);
-  var exploredMissing = (A.majors || []).filter(function (m) { return !D.surveyMajor[m] && !/^(Not sure|Other)/.test(m); });
+  function majorsFor(code) { return explored.filter(function (n) { return eligible(code, ALLM[n]); }); }
 
   // ---------- scoring (no AI) ----------
   var FEATURE_TEXT = { role: "your goal: %s", ind: "your interest in %s", topic: "a topic you want: %s",
@@ -72,7 +70,10 @@
   function features(s) {
     var f = {};
     [["roles", "role"], ["industries", "ind"], ["topics", "topic"], ["background", "bg"], ["skills", "skill"], ["majors", "major"]]
-      .forEach(function (p) { (s[p[0]] || []).forEach(function (v) { if (String(v).indexOf("Other: ") !== 0) f[p[1] + ":" + v] = 1; }); });
+      .forEach(function (p) { (s[p[0]] || []).forEach(function (v) {
+        if (String(v).indexOf("Other: ") === 0) return;
+        if (p[1] === "major" && D.majorAlias[v]) v = D.majorAlias[v];   // weights were learned under older names
+        f[p[1] + ":" + v] = 1; }); });
     if (s.recruiting) f["rec:" + s.recruiting.split(" —")[0]] = 1;
     else if (s.recruit_terms) {
       var rt = s.recruit_terms;
@@ -118,7 +119,7 @@
   var TODAY = new Date().toISOString().slice(0, 10);
   function started(e) { return e.term && STARTS[e.term] && TODAY >= STARTS[e.term]; }
   var TARGET = 4.5, QCAP = 3, RQCAP = 2;
-  var HEAVY = 5.5;   // warning only — no hard limit
+  var HEAVY = 5.5;   // warning only — no hard limit (testing found 2027 students could pile 13.5 CU into one term)
 
   // ---------- plan ----------
   function entries() { return Object.keys(S.plan).map(function (k) { return Object.assign({ code: k }, S.plan[k]); }); }
@@ -161,9 +162,15 @@
       var c = e.code, cu = cuOf(c);
       var after = (D.prereqs[c] || []).map(function (p) { return FUTURE.indexOf(termOf[p]); }).filter(function (i) { return i >= 0; });
       var start = after.length ? Math.max.apply(null, after) + 1 : 0;
-      var opts = FUTURE.slice(start); if (!opts.length) opts = FUTURE.slice(-1);
+      // …and before any already-placed class that needs it as a prerequisite (found by testing, Oct 27)
+      var needers = Object.keys(D.prereqs).filter(function (k) { return D.prereqs[k].indexOf(c) >= 0 && FUTURE.indexOf(termOf[k]) >= 0; });
+      var before = needers.length ? Math.min.apply(null, needers.map(function (k) { return FUTURE.indexOf(termOf[k]); })) : FUTURE.length;
+      var opts = FUTURE.slice(start, Math.max(start + 1, before)); if (!opts.length) opts = FUTURE.slice(-1);
+      var off = offered(c), runs = off ? opts.filter(function (t) { return t.indexOf(off[0]) === 0; }) : [];
+      if (off && off[2] === "year1") runs = runs.filter(function (t) { return t === TERMS[2]; });
+      if (off && runs.length) opts = runs;   // only the semesters the department says it runs
       var core = tier(c) === 0;
-      var spreadCore = /^No — spread/.test(A.frontload || "");
+      var spreadCore = /^No — spread/.test(A.frontload || "");   //
       var why = core ? (spreadCore ? "core requirement — spread across your semesters, as you asked" : "core requirement — scheduled as early as possible") : early[c] ? "needed early for your major" : "elective — placed to balance credits";
       var fits = function (t) { return !isQuant(c) || load[t].q < qcap(t); };
       var order = (core && !spreadCore) ? opts.slice() : opts.slice().sort(function (x, y) {
@@ -178,15 +185,33 @@
         why += c2.length ? "; above 4.5 CU — extra placed in the lightest term" : "; this term ends up quant-heavy";
       }
       if (heavy.indexOf(pick) >= 0) why += " · recruiting term (kept lighter)";
-      var slot = (cu >= 1 || FULLHALF[c]) ? "Full" : (load[pick].Q1 <= load[pick].Q2 ? "Q1" : "Q2");
+      var slot = (cu >= 1 || FULLHALF[c]) ? "Full" : (off && off[1] === "Q1") ? "Q1" : (load[pick].Q1 <= load[pick].Q2 ? "Q1" : "Q2");
+      if (off) why += off && runs.length ? " · offered in " + off[0] + (off[1] ? " " + off[1] : "") + " (department schedule)" : " · usually offered in " + off[0] + " — no such term left in your plan";
       add(pick, slot, cu, c);
       placed[c] = [pick, slot, why]; termOf[c] = pick;
     });
     return placed;
   }
+  // Published term data (HCM only so far): season, optional quarter, optional "year1"
+  function offered(c) { var x = (D.termOffered || {}).courses || {}; var hit = codesOf(c).filter(function (k) { return x[k]; })[0]; return hit ? x[hit] : null; }
+  function offTerm(c, term) { var o = offered(c); return !!(o && term && term.indexOf(o[0]) !== 0); }
   function savePlaced(p) { Object.keys(p).forEach(function (c) { var e = S.plan[c]; e.term = p[c][0]; e.slot = p[c][1]; e.why = p[c][2]; }); }
-  function placeNew() { savePlaced(schedule(false)); }
-  function resuggest() { savePlaced(schedule(true)); S.changes = 0; }
+  // After any placement: a class must come after its prerequisite. If it doesn't, move the class that needs the
+  // prerequisite to the semester after it (never a locked or already-started class).
+  function fixPrereqs() {
+    Object.keys(D.prereqs).forEach(function (k) {
+      var e = S.plan[k]; if (!e || !e.term || e.locked || started(e)) return;
+      D.prereqs[k].forEach(function (p) {
+        var pe = S.plan[p]; if (!pe || !pe.term) return;
+        var ti = FUTURE.indexOf(e.term), pi = FUTURE.indexOf(pe.term);
+        if (pi < 0 || ti > pi) return;
+        if (pi + 1 < FUTURE.length) { e.term = FUTURE[pi + 1]; e.why = "moved after its prerequisite " + p; }
+        else e.why = "should come after its prerequisite " + p + " — no later semester left";
+      });
+    });
+  }
+  function placeNew() { savePlaced(schedule(false)); fixPrereqs(); }
+  function resuggest() { savePlaced(schedule(true)); fixPrereqs(); S.changes = 0; }
   function slotOk(code, slot) {
     var cu = cuOf(code);
     if (!slot) return true;
@@ -203,48 +228,101 @@
       return c.code.indexOf(s.dept + " ") === 0 && +c.code.slice(-4) >= 7000 && c.cu >= s.min_cu;
     });
   }
+  // Statistics counts the course actually taken: STAT 6130 = 1.0, STAT 6210 by placement = 0.5
+  // — so core totals 9.5, or 9.0 with 6210.
+  // Same for Corporate finance (FNCE 6110 1.0 / 6210 0.5) and Macroeconomics (FNCE 6130 1.0 / 6230 0.5) —
+  //
+  function areaNeed(a) {
+    if (["Statistics", "Corporate finance", "Macroeconomics"].indexOf(a.name) < 0 || S.core[a.name] === "substituted") return a.need;
+    var got = a.options.map(function (o) { return canon(o.code); }).filter(function (c) { return S.plan[c]; });
+    return got.length ? Math.min.apply(null, got.map(cuOf)) : 1.0;
+  }
   function coreState() {
     var out = [];
     D.core.forEach(function (sec) {
       var t = 0, p = 0, need = 0, waived = 0, open = [];
       sec.areas.forEach(function (a) {
         if (!a.need) return;
-        var st = S.core[a.name];
-        if (st === "waived") { waived += a.need; return; }
-        need += a.need;
+        var st = S.core[a.name], an = areaNeed(a);
+        if (st === "waived") { waived += an; return; }
+        need += an;
         var opts = st === "substituted" ? subOptions(a).map(function (c) { return c.code; }) : a.options.map(function (o) { return canon(o.code); });
         var picked = opts.filter(function (c) { return S.plan[c]; });
         var tt = 0, pp = 0;
-        if (st === "substituted") { if (picked.length) { if (started(S.plan[picked[0]])) tt = a.need; else pp = a.need; } }
+        if (st === "substituted") { if (picked.length) { if (started(S.plan[picked[0]])) tt = an; else pp = an; } }
         else picked.forEach(function (c) { var cu = cuOf(c); if (started(S.plan[c])) tt += cu; else pp += cu; });
-        tt = Math.min(tt, a.need); pp = Math.min(pp, a.need - tt);
+        tt = Math.min(tt, an); pp = Math.min(pp, an - tt);
         t += tt; p += pp;
-        if (tt + pp < a.need) open.push(a.name);
+        if (tt + pp < an) open.push(a.name);
       });
       out.push({ name: sec.section, t: t, p: p, need: need, extra: waived ? fmt(waived) + " waived" : "", open: open });
     });
     return out;
   }
+  // OIDD flex core: which picked options are filling it (first ones up to 1.0 CU), for the "not_with_flex" rules
+  function flexUsed() {
+    var out = {}, have = 0, st = S.core["Operations, Information & Decisions"];
+    if (st === "waived" || st === "substituted") return out;
+    D.core.forEach(function (s) { s.areas.forEach(function (a) {
+      if (a.name !== "Operations, Information & Decisions") return;
+      a.options.forEach(function (o) { var c = canon(o.code); if (S.plan[c] && have < 1.0) { out[c] = 1; have += cuOf(c); } });
+    }); });
+    return out;
+  }
+  function majorProgress(m) {
+    var t = 0, p = 0, open = [], used = {}, groups = [], applied = {};
+    var rules = m.enforced || [], flex = flexUsed();
+    var inSet = function (c, codes) { return listed(c, codes); };
+    var countAs = function (c) {
+      var r = rules.filter(function (x) { return x.type === "count_as" && listed(c, [x.code]); })[0];
+      if (r) { applied[r.text] = 1; return Math.min(r.cu, cuOf(c)); }
+      return cuOf(c);
+    };
+    var blocked = function (c, cu) {   // would counting c break a rule?
+      return rules.some(function (r) {
+        if (!inSet(c, r.codes || [])) return false;
+        var counted = Object.keys(used).filter(function (u) { return inSet(u, r.codes); });
+        var hit = r.type === "one_of" ? counted.length >= 1
+          : r.type === "max_n" ? counted.length >= r.n
+          : r.type === "max_cu" ? counted.reduce(function (s, u) { return s + cuOf(u); }, 0) + cu > r.cu + 1e-9
+          : r.type === "not_with_flex" ? !!flex[c] : false;
+        if (hit) applied[r.text] = 1;
+        return hit;
+      });
+    };
+    var add = function (c, cu) { if (started(S.plan[c])) t += cu; else p += cu; };
+    var reqNeed = 0;
+    reqOf(m).forEach(function (c) { var cu = BY[c] ? BY[c].cu : 1; reqNeed += cu;
+      if (S.plan[c]) { add(c, cuOf(c)); used[c] = 1; } else open.push(c); });
+    if (m.core_one_of) {
+      reqNeed += 0.5;
+      var co = Object.keys(S.plan).filter(function (c) { return listed(c, m.core_one_of); });
+      if (co.length) { add(co[0], cuOf(co[0])); used[co[0]] = 1; } else open.push(m.core_one_of.join(" or "));
+    }
+    var need = Math.max(0, (m.total || 0) - reqNeed), et = 0, ep = 0;
+    (m.groups || []).slice().sort(function (a, b) { return (b.min ? 1 : 0) - (a.min ? 1 : 0); }).forEach(function (g) {
+      var gt = 0, gp = 0, cap = g.max != null ? g.max : 99, picked = [];
+      Object.keys(S.plan).forEach(function (c) {
+        if (used[c] || S.plan[c].own || !inGroup(c, g)) return;
+        if (CORE_CODES[c] && !g.include_core && !listed(c, g.codes)) return;   // core counts only where a major says so
+        var cu = countAs(c); if (gt + gp + cu > cap + 1e-9 || blocked(c, cu)) return;
+        used[c] = 1; picked.push(c);
+        if (started(S.plan[c])) gt += cu; else gp += cu;
+      });
+      groups.push({ g: g, have: gt + gp, picked: picked });
+      if (g.min && gt + gp < g.min) open.push(g.label);
+      et += gt; ep += gp;
+    });
+    et = Math.min(et, need); ep = Math.min(ep, need - et);
+    return { t: t + et, p: p + ep, need: m.total, open: open, groups: groups, counted: used, applied: applied };
+  }
   function majorState() {
     var rows = [], counts = {};
-    MAJ.filter(function (m) { return explored.indexOf(m.name) >= 0; }).forEach(function (m) {
-      var t = 0, p = 0, open = [];
-      m.required.forEach(function (r) {
-        var c = canon(r.code), e = S.plan[c];
-        if (e) { if (started(e)) t += r.cu; else p += r.cu; } else open.push(r.code);
-      });
-      m.buckets.forEach(function (b) {
-        var tt = 0, pp = 0;
-        Object.keys(S.plan).forEach(function (c) {
-          if (CORE_CODES[c] || REQ_MAJ[c] || !inRule(c, b.rule)) return;
-          (counts[c] = counts[c] || {})[m.name] = 1;
-          if (started(S.plan[c])) tt += cuOf(c); else pp += cuOf(c);
-        });
-        tt = Math.min(tt, b.need); pp = Math.min(pp, b.need - tt);
-        t += tt; p += pp;
-        if (tt + pp < b.need) open.push(b.label);
-      });
-      rows.push({ name: m.name, t: t, p: p, need: m.total, extra: "", open: open });
+    explored.forEach(function (n) {
+      var m = ALLM[n]; if (!m.total) return;
+      var r = majorProgress(m);
+      Object.keys(r.counted).forEach(function (c) { if (!CORE_CODES[c]) (counts[c] = counts[c] || {})[n] = 1; });
+      rows.push({ name: n, t: r.t, p: r.p, need: m.total, extra: "", open: r.open });
     });
     var dbl = 0;
     Object.keys(counts).forEach(function (c) { if (Object.keys(counts[c]).length > 1) dbl += cuOf(c); });
@@ -273,7 +351,12 @@
   }
   function coreView() {
     var h = "<h2 id='core'>Core requirements</h2><div class='startbanner'><b>Start here.</b> For each area, choose how you're meeting it — "
-      + "<b>Take</b>, <b>Waived</b> or <b>Substituted</b> — then tick the classes you've taken, are taking, or plan to take. Areas stay unanswered until you choose.</div>";
+      + "<b>Take</b>, <b>Waived</b> or <b>Substituted</b> — then tick the classes you've taken, are taking, or plan to take. Areas stay unanswered until you choose.</div>"
+      + "<p class='sub'>Wharton: leaving flexible core to your final semester can limit your choices, because of course availability.</p>";
+    var short = ["FNCE 6210", "FNCE 6230"].filter(function (c) { return S.plan[c]; });
+    if (short.length === 2) h += "<div class='watch capwarn'>Wharton doesn't allow using both FNCE 6210 and FNCE 6230 for the flexible core — take the full version of one.</div>";
+    if (short.length && (explored.indexOf("Finance") >= 0 || explored.indexOf("Quantitative Finance") >= 0))
+      h += "<div class='watch capwarn'>Finance majors can't take FNCE 6210 or FNCE 6230 — you're exploring a Finance major.</div>";
     D.core.forEach(function (sec) {
       h += "<div class='sect'>" + esc(sec.section) + "</div><div class='grid'>";
       sec.areas.forEach(function (a) {
@@ -286,7 +369,7 @@
         if (!st) { status = "choose: Take · Waived · Substituted"; met = false; }
         else if (st === "waived") { status = "✓ waived"; met = true; }
         else if (st === "substituted") { met = picked > 0; status = met ? "✓ substituted" : "pick a substitute"; }
-        else { met = have >= a.need && (a.need > 0 || picked > 0); status = met ? "✓ covered" : (a.need ? fmt(have) + " of " + fmt(a.need) + " CU" : "not selected");
+        else { var an = areaNeed(a); met = have >= an && (an > 0 || picked > 0); status = met ? "✓ covered" : (an ? fmt(have) + " of " + fmt(an) + " CU" : "not selected");
                if (a.rule === "pick one" && picked > 1) { status = "⚠ " + picked + " selected — pick one"; met = false; } }
         h += "<div class='cg" + (met ? " met" : "") + (st ? "" : " unanswered") + "'><div class='gh'><span class='gn'>" + esc(a.name) + "</span><span class='gs'>" + esc(a.rule) + " · " + esc(status) + "</span></div>";
         h += "<div class='cst'><span class='cst-l'>Status:</span>" + [["take", "Take"], ["waived", "Waived"], ["substituted", "Substituted"]].map(function (v) {
@@ -307,28 +390,45 @@
   }
   function majorsView() {
     var h = "<h2 id='majors'>Majors you're exploring</h2>";
-    var ms = MAJ.filter(function (m) { return explored.indexOf(m.name) >= 0; });
-    if (!ms.length) h += "<p class='sub'>None of the majors you chose have requirement data yet.</p>";
+    if (!explored.length) h += "<p class='sub'>You didn't pick a major to explore — redo the survey any time to add one.</p>";
+    explored.forEach(function (a) { (ALLM[a].exclusive || []).forEach(function (b) {
+      if (explored.indexOf(b) >= 0 && a < b) h += "<div class='watch capwarn'>Wharton doesn't allow " + esc(a) + " together with " + esc(b) + " — you can explore both, but only declare one.</div>"; }); });
     h += "<div class='grid'>";
-    ms.forEach(function (m) {
-      var st = majorState().rows.filter(function (r) { return r.name === m.name; })[0];
-      h += "<div class='cg'><div class='gh'><span class='gn'>" + esc(m.name) + "</span><span class='gs'>" + fmt(st.t + st.p) + " of " + fmt(m.total) + " CU</span></div>";
-      m.required.forEach(function (r) {
-        var c = canon(r.code);
-        h += "<label class='opt'><input type='checkbox' data-pick='" + esc(c) + "'" + (S.plan[c] ? " checked" : "") + "><span><b>" + esc(r.code) + "</b> " + esc(r.title) + " · " + fmt(r.cu) + " CU <span class='nt'>Required</span></span></label>";
+    explored.forEach(function (n) {
+      var m = ALLM[n], r = m.total ? majorProgress(m) : null;
+      h += "<div class='cg'><div class='gh'><span class='gn'>" + esc(n) + (m.stem ? " <span class='nt'>STEM</span>" : "") + "</span><span class='gs'>"
+        + (r ? fmt(r.t + r.p) + " of " + fmt(m.total) + " CU" : "self-designed — not tracked") + "</span></div>";
+      if (m.apply_note) h += "<div class='startbanner'>" + esc(m.apply_note) + "</div>";
+      if (m.prereq_note) h += "<div class='nt'>" + esc(m.prereq_note) + "</div>";
+      reqOf(m).forEach(function (c) {
+        var k = BY[c];
+        h += "<label class='opt'><input type='checkbox' data-pick='" + esc(c) + "'" + (S.plan[c] ? " checked" : "") + (k ? "" : " disabled") + "><span><b>" + esc(c) + "</b> "
+          + esc(k ? k.title : "") + (k ? " · " + fmt(k.cu) + " CU" : "") + " <span class='nt'>Required" + (k ? "" : " — not in this year's course list") + "</span></span></label>";
       });
-      m.buckets.forEach(function (b) {
-        var picked = Object.keys(S.plan).filter(function (c) { return !CORE_CODES[c] && !REQ_MAJ[c] && inRule(c, b.rule); });
-        var have = picked.reduce(function (s, c) { return s + cuOf(c); }, 0);
-        h += "<div class='pill'><span>" + esc(b.label) + "</span><span>" + fmt(have) + " of " + fmt(b.need) + " CU" + (have >= b.need ? " ✓" : "") + "</span></div>"
-          + (picked.length ? "<div class='nt'>Picked: " + esc(picked.join(", ")) + "</div>" : "<div class='nt'>Pick from Electives below — use the " + esc(MAJ_SHORT[m.name]) + " filter.</div>");
+      if (m.core_one_of) h += "<div class='nt'>Plus one of " + esc(m.core_one_of.join(" / ")) + " (core).</div>";
+      (r ? r.groups : (m.groups || []).map(function (g) { return { g: g, have: 0, picked: [] }; })).forEach(function (x) {
+        var g = x.g, goal = g.min ? fmt(x.have) + " of " + fmt(g.min) + " CU" + (x.have >= g.min ? " ✓" : "") : fmt(x.have) + " CU (up to " + fmt(g.max != null ? g.max : m.total) + ")";
+        //
+        var goneList = g.codes ? g.codes.filter(function (c) { return (m.notOffered || []).indexOf(c) >= 0; }) : [];
+        var availCU = g.codes ? g.codes.filter(function (c) { return BY[canon(c)] && (m.notOffered || []).indexOf(c) < 0; })
+                                       .map(canon).filter(function (c, i, a) { return a.indexOf(c) === i; }).reduce(function (s, c) { return s + BY[c].cu; }, 0) : 99;
+        var tight = g.min && availCU < 2 * g.min;
+        h += "<div class='pill'><span>" + esc(g.label) + "</span><span>" + goal + "</span></div>"
+          + (x.picked.length ? "<div class='nt'>Picked: " + esc(x.picked.join(", ")) + "</div>"
+             : "<div class='nt'>" + (g.dept ? "Any upper-level " + esc(g.dept) + " course." : "Pick from Electives below — use the " + esc(MAJ_SHORT[n]) + " filter.") + "</div>")
+          + (goneList.length ? "<div class='gonewarn'>⚠ Not in this year's course list, so you can't pick " + (goneList.length > 1 ? "them" : "it") + " now: "
+             + esc(goneList.join(", ")) + ". " + (goneList.length > 1 ? "They" : "It") + " may be offered in another year — check with the department."
+             + (tight ? " <b>Fewer options than usual for this requirement this year.</b>" : "") + "</div>" : "");
       });
-      h += "</div>";
+      if ((m.enforced || []).length) h += "<div class='rules'><b>Rules for this major</b><div class='nt'>Fine print from the major's official page that changes how classes count. The planner applies these to your progress automatically.</div><ul>" + m.enforced.map(function (x) {
+          return "<li>" + esc(x.text) + (r && r.applied[x.text] ? " <span class='appl'>applied to your plan</span>" : "") + "</li>"; }).join("") + "</ul></div>";
+      if (m.rules) h += "<div class='nt'>" + esc(m.rules) + "</div>";
+      h += "<div class='nt'>Source: <a target='_blank' rel='noopener' href='" + esc(m.source) + "'>official major page</a>" + (m.source_note ? " (" + esc(m.source_note) + ")" : "")
+        + " · pulled " + esc(D.majorsPulled) + "</div></div>";
     });
     h += "</div>";
-    if (exploredMissing.length) h += "<p class='sub'>Requirements for " + esc(exploredMissing.join(", ")) + " aren't loaded yet — only Finance, Entrepreneurship & Innovation and AI for Business are so far.</p>";
     var dbl = majorState().dbl;
-    if (ms.length > 1) h += "<div class='watch" + (dbl > D.doubleCap ? " capwarn" : "") + "'>" + fmt(dbl) + " CU of your picks count toward two majors. Wharton caps this at 2.0 CU total.</div>";
+    if (explored.length > 1) h += "<div class='watch" + (dbl > D.doubleCap ? " capwarn" : "") + "'>" + fmt(dbl) + " CU of your picks count toward two majors. Wharton caps this at 2.0 CU total.</div>";
     return h;
   }
   function card(c, col) {
@@ -361,7 +461,7 @@
     var nRec = all.filter(function (c) { return LABEL[c]; }).length;
     var h = "<h2 id='electives'>Electives — the full catalog</h2><p class='sub'>Everything starts in <b>Maybe</b>, sorted by how well it matches your answers. "
       + nRec + " classes are labeled <b>Best fit</b> or <b>Good fit</b>; the rest are unlabeled, not ruled out. ✓ adds a class to your plan and calendar, ✕ moves it to No.</p>";
-    h += "<div class='chips'>" + [["all", "All"], ["rec", "Recommended for you"], ["Finance", "Finance"], ["Entrepreneurship & Innovation", "E&I"], ["AI for Business", "AI"], ["none", "Not in a major"]].map(function (f) {
+    h += "<div class='chips'>" + [["all", "All"], ["rec", "Recommended for you"]].concat(explored.map(function (m) { return [m, MAJ_SHORT[m]]; })).concat(explored.length ? [["none", "Not in your majors"]] : []).map(function (f) {
       return "<button class='chip" + (ui.filter === f[0] ? " on" : "") + "' data-filter='" + esc(f[0]) + "'>" + esc(f[1]) + "</button>";
     }).join("") + "<input id='q' class='search' placeholder='Search classes' value='" + esc(ui.q) + "'></div>";
     var own = entries().filter(function (e) { return e.own; });
@@ -384,7 +484,8 @@
   function calendarView() {
     var heavy = S.recruitTerms || [];
     var h = "<h2 id='calendar'>Calendar</h2><p class='sub'>Suggested placements fill each semester to about 4.5 CU, schedule core first, keep recruiting terms lighter "
-      + "and spread quant-heavy courses. Drag to try a class elsewhere — that doesn't lock it; click 🔓 when you're sure. <b>Which terms each class is offered isn't known.</b></p>";
+      + "and spread quant-heavy courses. Drag to try a class elsewhere — that doesn't lock it; click 🔓 when you're sure.</p>"
+      + "<div class='startbanner'><b>Heads up:</b> this planner doesn't know which semester most classes actually run, so a suggested term may not match when a class is offered. The exception is Health Care Management classes, which follow the HCM department's published schedule. Check the course schedule in Course Match before you register.</div>";
     h += "<div class='cst'><span class='cst-l'>Recruiting in:</span>" + TERMS.filter(function (t) { return !/^Summer/.test(t); }).map(function (t) {
       return "<label><input type='checkbox' data-rec='" + esc(t) + "'" + (heavy.indexOf(t) >= 0 ? " checked" : "") + "> " + esc(t) + "</label>";
     }).join("") + "</div>";
@@ -414,6 +515,7 @@
     var mj = e.own ? [] : majorsFor(e.code).filter(function (m) { return explored.indexOf(m) >= 0 || REQ_MAJ[e.code] === m; });
     return "<div class='chip " + (done ? "done" : locked ? "locked" : "sugg") + "' draggable='" + (done ? "false" : "true") + "' data-chip='" + esc(e.code) + "'" + (e.why ? " title=\"" + esc(e.why) + "\"" : "") + ">"
       + (done ? "<span class='lk'>✔</span>" : "<button class='lk' data-lock='" + esc(e.code) + "' title='" + (locked ? "Locked in — click to unlock" : "Suggested — click to lock in") + "'>" + (locked ? "🔒" : "🔓") + "</button>")
+      + (offTerm(e.code, e.term) ? "<span class='offwarn' title='The department lists this class in " + esc(offered(e.code)[0]) + "'>⚠ usually " + esc(offered(e.code)[0]) + "</span> " : "")
       + "<b>" + esc(e.own ? (e.shown || "") : e.code) + "</b> " + esc(e.own ? e.title : k ? k.title : "") + " <span class='cu'>" + fmt(cuOf(e.code)) + "</span>" + (isQuant(e.code) ? " <span class='qh'>∑</span>" : "")
       + "<div class='ctags'>" + (cat ? "<span class='tag mj' style='--c:#8a857c'><i></i>" + cat + "</span>" : "")
       + mj.map(function (m) { return "<span class='tag mj' style='--c:" + MAJ_COLOR[m] + "'><i></i>" + esc(MAJ_SHORT[m]) + "</span>"; }).join("")
@@ -424,8 +526,11 @@
       + "<b>Wharton classes only — classes from other Penn schools aren't included.</b> Use “+ Add a class you don't see” for those.</p>"
       + "<p class='when'><b>Exported " + esc(D.exported) + ".</b> Classes are subject to change since the export — check the live list before you register.</p>"
       + "<ul>" + D.sources.map(function (s) { return "<li><a target='_blank' rel='noopener' href='" + esc(s[1]) + "'>" + esc(s[0]) + "</a></li>"; }).join("") + "</ul>"
-      + "<p class='sub'>Recommendations come from patterns learned from 100 sample student profiles — no AI runs while you use this, and nothing you enter leaves your browser. "
-      + "Major requirements cover Finance, Entrepreneurship & Innovation and AI for Business so far; check every requirement with your academic advisor.</p></section>";
+      + "<p><b>Majors and their requirements</b> come from each department's official page, linked from Wharton's <a target='_blank' rel='noopener' href='" + esc(D.majorsMaster) + "'>MBA majors list</a>. "
+      + "<b>Pulled " + esc(D.majorsPulled) + ".</b> Some listed courses aren't in this year's course list; requirements can change — confirm with your academic advisor.</p>"
+      + "<details><summary>" + D.majors.length + " majors — source pages</summary><ul>" + D.majors.map(function (m) {
+          return "<li><a target='_blank' rel='noopener' href='" + esc(m.source) + "'>" + esc(m.name) + "</a>" + (m.source_note ? " <span class='nt'>(" + esc(m.source_note) + ")</span>" : "") + "</li>"; }).join("") + "</ul></details>"
+      + "<p class='sub'>Recommendations come from patterns learned from 132 sample student profiles — no AI runs while you use this, and nothing you enter leaves your browser.</p></section>";
   }
   function render() {
     var y = window.scrollY;
@@ -529,7 +634,7 @@
         function () { $("#fbtext").value = txt; $("#fbtext").select(); $("#fbcopy").textContent = "Select-all copied text above"; });
     };
   }
-  window.__wcp = { S: S, addToPlan: addToPlan, removeFromPlan: removeFromPlan, schedule: schedule, resuggest: resuggest,
+  window.__wcp = { offered: offered, S: S, addToPlan: addToPlan, removeFromPlan: removeFromPlan, schedule: schedule, resuggest: resuggest,
                    render: render, LABEL: LABEL, SCORE: SCORE, coreState: coreState, majorState: majorState };   // for tests
   if (localStorage.getItem("wcp.state") === null) placeNew();
   try { var st = JSON.parse(localStorage.getItem("wcp.state")); if (st && st.rescore) { delete S.rescore; } } catch (e) {}

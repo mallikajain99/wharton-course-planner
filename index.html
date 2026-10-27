@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Plan your two years at Wharton</title>
-<!-- Intake survey — answers stay in this browser (localStorage); nothing is sent anywhere. -->
+
 <style>
 :root{--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--rule:#e0ddd9;--plane:#f9f9f7;--card:#fff;--accent:#2a78d6}
 *{box-sizing:border-box}
@@ -86,28 +86,25 @@ button{color:var(--ink)} button.pri{background:var(--ink);color:var(--plane)}
 <div id="donep" class="part"></div>
 </div>
 <div class="nav"><button id="back">Back</button><span class="sp" id="where"></span><button class="pri" id="next">Next</button></div>
+<script src="data.js"></script>
 <script>
-
-var MAJORS=["Accounting","Artificial Intelligence for Business","Behavioral Economics","Business Analytics",
- "Business Economics & Public Policy","Business, Energy, Environment & Sustainability","Diversity, Equity & Inclusion",
- "Entrepreneurship & Innovation","Environmental, Social & Governance (ESG) Factors for Business","Finance",
- "Health Care Management","Management","Marketing","Marketing & Operations Management","Multinational Management",
- "Operations, Information & Decisions","Quantitative Finance","Real Estate","Social Impact & Responsibility",
- "Statistics","Strategic Management"];
+// Questions = courses/intake-survey-draft.md v3. Keep the two in step.
+// Majors come from data.js — the official list on Wharton's majors page, pulled with a date (never from memory).
+var MAJORS=((window.PLANNER_DATA||{}).majorNames)||[];
 var PARTS=[
  {title:"About you",qs:[
-  {id:"class",t:"Which class are you in?",k:"one",o:["Class of 2027","Class of 2028"]},
+  {id:"class",t:"Which class are you in?",k:"one",o:["Class of 2027","Class of 2028"],noOther:true},
   {id:"background",t:"What did you do before Wharton?",k:"all",o:["Consulting","Banking / finance","Engineering / CS","Product","Startup / founder","Marketing","Operations","Nonprofit / public sector","Military"]},
-  {id:"skills",t:"Which skills do you already have — enough that you don't need a class for them?",h:"We'll skip beginner classes in these.",k:"all",o:["SQL / databases","Python / coding","Excel modeling","Consulting frameworks","Project management","Basic statistics","Accounting","Marketing analytics","None of these"]}]},
+  {id:"skills",t:"Which skills do you already have — enough that you don't need a class for them?",h:"We'll skip beginner classes in these.",k:"all",o:["SQL / databases","Python / coding","Excel modeling","Consulting frameworks","Project management","Basic statistics","Accounting","Marketing analytics","None of these"],noOther:true}]},
  {title:"Goals",qs:[
   {id:"roles",t:"What roles are you aiming for after the MBA?",k:"all",o:["Founder / startup","Venture capital","Product management","Strategy & operations","Consulting","Investment banking","Investing (PE / hedge funds)","Corporate finance","Marketing / brand","General management","Social impact","Undecided"]},
   {id:"industries",t:"Which industries interest you?",k:"all",o:["Consumer","Health & wellness","Healthcare","Fintech","AI / software","Climate / energy","Media & entertainment","Real estate","Financial services","Industrials"]},
   {id:"topics",t:"Which topics do you want more of, even outside a major?",k:"all",o:["Negotiation","Leadership","Persuasion / influence","Geopolitics","Ethics","Brand / consumer behavior","Data & AI tools","Personal finance","Public speaking"]},
   {id:"recruit_terms",t:"Which semesters will you be recruiting?",h:"Select all that apply — we keep those semesters lighter on your calendar.",k:"all",o:["Fall of year 1","Spring of year 1","Fall of year 2","Spring of year 2","Not recruiting"],noOther:true},
-  {id:"frontload",t:"Do you want to front-load your core and flex core classes?",h:"We'll use this to place classes on your calendar.",k:"one",o:["Yes — get core done early","No — spread core across my semesters","No preference"]},
+  {id:"frontload",t:"Do you want to front-load your core and flex core classes?",h:"We'll use this to place classes on your calendar.",k:"one",o:["Yes — get core done early","No — spread core across my semesters","No preference"],noOther:true},
   {id:"goals_more",t:"Any more context about your goals that would help pick classes?",h:"Optional — a sentence or two.",k:"text"}]},
  {title:"Majors and depth",qs:[
-  {id:"majors",t:"Which majors are you exploring?",h:"Select as many as you like. You can add or drop majors any time — nothing is locked in.",k:"all",o:MAJORS.concat(["Not sure — suggest some for me"])},
+  {id:"majors",t:"Which majors are you exploring?",h:"Select as many as you like. You can add or drop majors any time — nothing is locked in.",k:"all",o:MAJORS.concat(["Not sure — suggest some for me"]),noOther:true},
   {id:"depth",t:"For each area: how much do you already know, and where do you want to end up?",h:"Two answers per row. We suggest classes above what you know and up to where you want to be. Leave a row blank if you're not sure.",k:"grid2",
    rows:["Finance","Accounting","Marketing","Operations & analytics","Statistics & data science","Strategy","Leadership & people","Entrepreneurship","Economics","Legal & ethics"],
    know:[["None",""],["Some","basics"],["Working","use it at work"],["Expert","could teach it"]],

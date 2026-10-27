@@ -12,9 +12,9 @@ Claude Code.
    exploring, how much you already know and want to learn in each area, and whether to front-load core.
 2. **Core and flex core.** Every requirement area, marked *Take*, *Waived* or *Substituted*, with the documented
    substitute lists.
-3. **Majors.** Required courses and elective buckets with progress, plus Wharton's double-counting rule (at most
-   2.0 CU counting toward two majors). Requirement data so far: Finance, Entrepreneurship & Innovation, and AI for
-   Business.
+3. **Majors.** All 22 Wharton MBA majors, each with its required courses, elective groups (minimums and caps),
+   progress, which majors can't be combined, and Wharton's double-counting rule (at most 2.0 CU counting toward
+   two majors).
 4. **Electives.** The full catalog in Yes / Maybe / No columns. Everything starts in *Maybe*; classes that match
    your answers are labeled **Best fit** or **Good fit** with the reason. Nothing is ever labeled "not a fit" —
    the planner highlights, the student decides.
@@ -29,7 +29,7 @@ Your answers and plan are saved in your own browser (localStorage). Nothing is s
 No AI runs while you use the planner, so it's free to host and private by design. Instead:
 
 - Every course was tagged once (area, depth level, quant load, roles and industries it serves).
-- 100 varied sample student profiles were written and each was rated course-by-course by an AI model, using only
+- 132 varied sample student profiles (including 32 added for the newest majors) were written and each was rated course-by-course by an AI model, using only
   the profile's survey answers.
 - From those ratings the planner learned, for every course, how much each survey answer raises or lowers the
   chance it's a fit — with shrinkage so thin evidence doesn't produce noisy weights. A small rule boosts
@@ -46,14 +46,14 @@ only on students it was never trained on.
 | Approach | Tested on | Expert's top 20 found in its top 20 | …in its top 30 |
 |---|---|---|---|
 | Hand-written rules | 5 profiles | 7.4 | 10.6 |
-| **Learned weights (this planner)** | **100 profiles, 5-fold cross-validation** | **10.4** | **13.1** |
+| **Learned weights (this planner)** | **132 profiles, 5-fold cross-validation** | **10.4** | **13.1** |
 | Live AI ranking per student | 5 profiles | 14.2 | 16.6 |
 | A second independent expert | 5 profiles | 17.8 | 19.2 |
 
 Live AI ranks best but costs money for every student; the learned version captures part of that judgment at zero
 running cost. Experiments that didn't make the cut: more detailed course tags (+0.3 classes), two extra survey
 questions about favorite topics and goals for electives (+0.2), and sharing weights across courses with the same
-tags (worse, −1.0). Training on more profiles didn't move held-out results either — the limit is judging full course
+tags (worse, −1.0). Adding 32 profiles for the four newest majors lifted those students by +1.3 classes. Beyond that, training on more profiles didn't move held-out results either — the limit is judging full course
 descriptions, which only live AI does.
 
 ## Sources
@@ -61,8 +61,10 @@ descriptions, which only live AI does.
 - Courses: [Wharton MBA elective course list](https://mba.wharton.upenn.edu/elective-course-list/), Excel
   export of Oct 21 2026. Classes change during the year — check the live list before registering.
 - Wharton classes only; other Penn schools aren't included (add them yourself with "+ Add a class you don't see").
-- Core and major rules from Wharton's MBA program pages and the Penn catalog. Always confirm with your academic
-  advisor.
+- Majors: each major's official department page, linked from Wharton's
+  [MBA majors list](https://mba.wharton.upenn.edu/mba-majors/), pulled Oct 27 2026 (every source is linked in the
+  planner). Some listed courses aren't in this year's course list.
+- Core rules from Wharton's MBA program pages. Always confirm requirements with your academic advisor.
 
 ## Running it
 
