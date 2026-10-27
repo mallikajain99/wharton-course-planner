@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan your two years at Wharton</title>
+<!-- Intake survey — answers stay in this browser (localStorage); nothing is sent anywhere. -->
+<style>
+:root{--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;--rule:#e0ddd9;--plane:#f9f9f7;--card:#fff;--accent:#2a78d6}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);background:var(--plane)}
+.wrap{padding:28px 32px 120px}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:var(--ink2);margin:0 0 16px}
+.prog{display:flex;gap:6px;margin:0 0 22px}
+.prog div{flex:1;height:6px;border-radius:3px;background:#ecebe7}
+.prog div.on{background:var(--accent)}
+.prog div.done{background:#1baf7a}
+.steplab{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.part{display:none}.part.on{display:block}
+.q{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:16px 18px;margin:0 0 14px}
+.q .qt{font-weight:700;font-size:16px}
+.q .hint{font-size:13px;color:var(--ink2);margin:2px 0 10px}
+.q .kind{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-left:6px;font-weight:600}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:6px 13px;border:1px solid var(--rule);border-radius:99px;background:#fff;color:var(--ink2);font-size:14px;user-select:none}
+.opts label:hover{border-color:var(--ink2)}
+.opts input{display:none}
+.opts label:has(input:checked){background:var(--ink);color:#fff;border-color:var(--ink)}
+.other{display:none;margin-top:8px}
+.other.on{display:block}
+input.txt,textarea{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--rule);border-radius:6px;background:#fff;width:100%}
+textarea{min-height:76px;resize:vertical}
+table.grid{width:100%;border-collapse:collapse;font-size:14px}
+.grid th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;padding:6px;text-align:center;border-bottom:1px solid var(--rule)}
+.grid th:first-child{text-align:left}
+.grid td{padding:6px;border-bottom:1px solid var(--rule);text-align:center}
+.grid td:first-child{text-align:left;color:var(--ink)}
+.grid label{display:inline-block;width:22px;height:22px;border:1.5px solid var(--rule);border-radius:50%;cursor:pointer;background:#fff}
+.grid input{display:none}
+.grid label:has(input:checked){background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 4px #fff}
+.grid th.grp{text-align:center;color:var(--ink2);border-bottom:0}
+.grid .gap{width:18px;border-bottom:0}
+.grid .sub2{display:block;font-size:10.5px;text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400}
+.fb{margin-top:10px;font-size:12.5px}
+.fb a{color:var(--muted);cursor:pointer;text-decoration:none}
+.fb a:hover{color:var(--ink2)}
+.fb textarea{display:none;margin-top:6px;min-height:54px;background:#fff8e6;border-color:#e3c27a}
+.fb.on textarea{display:block}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--rule);padding:12px 32px;display:flex;gap:10px;align-items:center}
+.nav .sp{flex:1;color:var(--muted);font-size:13px}
+button{font:inherit;font-weight:600;padding:8px 18px;border-radius:6px;cursor:pointer;border:1px solid var(--ink);background:#fff;color:var(--ink)}
+button.pri{background:var(--ink);color:#fff}
+button[hidden]{display:none}
+.note{background:#fff4dc;border:1px solid #e3c27a;color:#6b4a00;border-radius:8px;padding:8px 12px;font-size:13px;margin:0 0 14px}
+.rev{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:6px 18px}
+.rev .row{display:grid;grid-template-columns:minmax(200px,38%) 1fr;gap:14px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.rev .row:last-child{border-bottom:0}
+.rev .k{color:var(--ink2)}
+.rev .fbv{display:block;margin-top:3px;font-size:12.5px;color:#8a5d00}
+.empty{color:var(--muted)}
+.done{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:22px 24px}
+@media (prefers-color-scheme: dark){:root:not([data-theme=light]){--ink:#f2f1ee;--ink2:#c4c2bc;--muted:#8f8d87;--rule:#3a3936;--plane:#151514;--card:#1f1f1d}}
+:root[data-theme=dark]{--ink:#f2f1ee;--ink2:#c4c2bc;--muted:#8f8d87;--rule:#3a3936;--plane:#151514;--card:#1f1f1d}
+.opts label,.grid label,input.txt,textarea,button{background:var(--card);color:var(--ink2)}
+button{color:var(--ink)} button.pri{background:var(--ink);color:var(--plane)}
+.opts label:has(input:checked){background:var(--ink);color:var(--plane)}
+.fb textarea{background:color-mix(in srgb,#e3c27a 18%,var(--card))}
+</style><script>try{var th=localStorage.getItem("wcp.theme");if(th)document.documentElement.dataset.theme=th;}catch(e){}</script></head><body><div class="wrap">
+<h1>Plan your two years at Wharton</h1>
+<p class="sub">About 3 minutes. Your answers stay in this browser — nothing is sent anywhere. Pick what fits — every question has an “Other” box if nothing does, and you can change any answer later.</p>
+<div class="prog" id="prog"></div>
+<div id="parts"></div>
+<div id="review" class="part"></div>
+<div id="donep" class="part"></div>
+</div>
+<div class="nav"><button id="back">Back</button><span class="sp" id="where"></span><button class="pri" id="next">Next</button></div>
+<script>
+
+var MAJORS=["Accounting","Artificial Intelligence for Business","Behavioral Economics","Business Analytics",
+ "Business Economics & Public Policy","Business, Energy, Environment & Sustainability","Diversity, Equity & Inclusion",
+ "Entrepreneurship & Innovation","Environmental, Social & Governance (ESG) Factors for Business","Finance",
+ "Health Care Management","Management","Marketing","Marketing & Operations Management","Multinational Management",
+ "Operations, Information & Decisions","Quantitative Finance","Real Estate","Social Impact & Responsibility",
+ "Statistics","Strategic Management"];
+var PARTS=[
+ {title:"About you",qs:[
+  {id:"class",t:"Which class are you in?",k:"one",o:["Class of 2027","Class of 2028"]},
+  {id:"background",t:"What did you do before Wharton?",k:"all",o:["Consulting","Banking / finance","Engineering / CS","Product","Startup / founder","Marketing","Operations","Nonprofit / public sector","Military"]},
+  {id:"skills",t:"Which skills do you already have — enough that you don't need a class for them?",h:"We'll skip beginner classes in these.",k:"all",o:["SQL / databases","Python / coding","Excel modeling","Consulting frameworks","Project management","Basic statistics","Accounting","Marketing analytics","None of these"]}]},
+ {title:"Goals",qs:[
+  {id:"roles",t:"What roles are you aiming for after the MBA?",k:"all",o:["Founder / startup","Venture capital","Product management","Strategy & operations","Consulting","Investment banking","Investing (PE / hedge funds)","Corporate finance","Marketing / brand","General management","Social impact","Undecided"]},
+  {id:"industries",t:"Which industries interest you?",k:"all",o:["Consumer","Health & wellness","Healthcare","Fintech","AI / software","Climate / energy","Media & entertainment","Real estate","Financial services","Industrials"]},
+  {id:"topics",t:"Which topics do you want more of, even outside a major?",k:"all",o:["Negotiation","Leadership","Persuasion / influence","Geopolitics","Ethics","Brand / consumer behavior","Data & AI tools","Personal finance","Public speaking"]},
+  {id:"recruiting",t:"How are you recruiting?",h:"We keep your busiest recruiting semesters lighter.",k:"one",o:["Mature recruiting — busy first fall, lighter after","Enterprise / startup recruiting — busy Spring of year 1, maybe Spring of year 2","Not recruiting"]},
+  {id:"frontload",t:"Do you want to front-load your core and flex core classes?",h:"We'll use this to place classes on your calendar.",k:"one",o:["Yes — get core done early","No — spread core across my semesters","No preference"]},
+  {id:"goals_more",t:"Any more context about your goals that would help pick classes?",h:"Optional — a sentence or two.",k:"text"}]},
+ {title:"Majors and depth",qs:[
+  {id:"majors",t:"Which majors are you exploring?",h:"Select as many as you like. You can add or drop majors any time — nothing is locked in.",k:"all",o:MAJORS.concat(["Not sure — suggest some for me"])},
+  {id:"depth",t:"For each area: how much do you already know, and where do you want to end up?",h:"Two answers per row. We suggest classes above what you know and up to where you want to be. Leave a row blank if you're not sure.",k:"grid2",
+   rows:["Finance","Accounting","Marketing","Operations & analytics","Statistics & data science","Strategy","Leadership & people","Entrepreneurship","Economics","Legal & ethics"],
+   know:[["None",""],["Some","basics"],["Working","use it at work"],["Expert","could teach it"]],
+   want:[["Skip",""],["Fluent","understand it"],["Solid","can do the work"],["Deep","specialist"]]}]},
+ {title:"Anything else",qs:[
+  {id:"anything",t:"Anything else we should know?",h:"Optional. For example: a class you're set on or want to avoid · a class outside Wharton you plan to take · interest in travel courses (Global Modular Courses / Global Business Week) · a semester that will be extra busy beyond recruiting · a semester abroad or leave.",k:"text",big:true}]}
+];
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+var html="";
+PARTS.forEach(function(p,pi){
+ html+="<div class='part' data-p='"+pi+"'><div class='steplab'>Part "+(pi+1)+" of "+PARTS.length+"</div><h1 style='font-size:20px;margin:0 0 14px'>"+esc(p.title)+"</h1>";
+ p.qs.forEach(function(q){
+  var kind={one:"pick one",all:"select all that apply",text:"",grid:"one per row"}[q.k];
+  html+="<div class='q' data-q='"+q.id+"'><div class='qt'>"+esc(q.t)+(kind?"<span class='kind'>"+kind+"</span>":"")+"</div>"+(q.h?"<div class='hint'>"+esc(q.h)+"</div>":"<div style='height:10px'></div>");
+  if(q.k==="one"||q.k==="all"){
+   var ty=q.k==="one"?"radio":"checkbox";
+   html+="<div class='opts'>"+q.o.map(function(o){return "<label><input type='"+ty+"' name='"+q.id+"' value='"+esc(o)+"'>"+esc(o)+"</label>";}).join("")
+     +"<label><input type='"+ty+"' name='"+q.id+"' value='__other'>Other</label></div>"
+     +"<div class='other'><input class='txt' data-other='"+q.id+"' placeholder='Type your own answer'></div>";
+  } else if(q.k==="text"){
+   html+="<textarea data-text='"+q.id+"'"+(q.big?" style='min-height:110px'":"")+"></textarea>";
+  } else if(q.k==="grid2"){
+   var th=function(c){return "<th>"+esc(c[0])+(c[1]?"<span class='sub2'>"+esc(c[1])+"</span>":"")+"</th>";};
+   html+="<table class='grid'><tr><th></th><th colspan='4' class='grp'>Already know</th><th class='gap'></th><th colspan='4' class='grp'>Want to end up at</th></tr>"
+     +"<tr><th></th>"+q.know.map(th).join("")+"<th class='gap'></th>"+q.want.map(th).join("")+"</tr>";
+   q.rows.concat(["__other"]).forEach(function(r,ri){
+    var lab=r==="__other"?"<input class='txt' data-otherrow='"+q.id+"' placeholder='Other area' style='max-width:200px'>":esc(r);
+    var cell=function(side){return function(c){return "<td><label><input type='radio' name='"+q.id+"_"+side+"__"+ri+"' value='"+esc(c[0])+"'></label></td>";};};
+    html+="<tr><td>"+lab+"</td>"+q.know.map(cell("know")).join("")+"<td class='gap'></td>"+q.want.map(cell("want")).join("")+"</tr>";
+   });
+   html+="</table>";
+  } else if(q.k==="grid"){
+   html+="<table class='grid'><tr><th></th>"+q.cols.map(function(c){return "<th>"+esc(c[0])+(c[1]?"<span class='sub2'>"+esc(c[1])+"</span>":"")+"</th>";}).join("")+"</tr>";
+   q.rows.concat(["__other"]).forEach(function(r,ri){
+    var lab=r==="__other"?"<input class='txt' data-otherrow='"+q.id+"' placeholder='Other area' style='max-width:220px'>":esc(r);
+    html+="<tr><td>"+lab+"</td>"+q.cols.map(function(c){return "<td><label><input type='radio' name='"+q.id+"__"+ri+"' value='"+esc(c[0])+"'></label></td>";}).join("")+"</tr>";
+   });
+   html+="</table>";
+  }
+  html+="<div class='fb'><a data-fb='"+q.id+"'>💬 Feedback on this question</a><textarea data-fbt='"+q.id+"' placeholder='Your feedback — wording, missing options, should it be cut?'></textarea></div></div>";
+ });
+ html+="</div>";
+});
+document.getElementById("parts").innerHTML=html;
+var steps=PARTS.length+2, cur=0;
+var prog=document.getElementById("prog");
+for(var i=0;i<PARTS.length+1;i++) prog.appendChild(document.createElement("div"));
+document.addEventListener("change",function(e){
+ var n=e.target.name; if(!n) return;
+ var q=document.querySelector(".q[data-q='"+n+"']"); if(!q) return;
+ var oth=q.querySelector(".other"); if(!oth) return;
+ var on=!!q.querySelector("input[value='__other']:checked");
+ oth.classList.toggle("on",on); if(on&&e.target.value==="__other") oth.querySelector("input").focus();
+});
+document.addEventListener("click",function(e){
+ var a=e.target.closest&&e.target.closest("[data-fb]"); if(!a) return;
+ var f=a.parentNode; f.classList.toggle("on"); if(f.classList.contains("on")) f.querySelector("textarea").focus();
+});
+function answers(){
+ var out={answers:{},feedback:{}};
+ PARTS.forEach(function(p){p.qs.forEach(function(q){
+  var v;
+  if(q.k==="one"||q.k==="all"){
+   v=[].map.call(document.querySelectorAll("input[name='"+q.id+"']:checked"),function(x){return x.value;});
+   var ot=document.querySelector("[data-other='"+q.id+"']").value.trim();
+   v=v.map(function(x){return x==="__other"?("Other: "+(ot||"(blank)")):x;});
+   if(q.k==="one") v=v[0]||"";
+  } else if(q.k==="text"){ v=document.querySelector("[data-text='"+q.id+"']").value.trim(); }
+  else if(q.k==="grid2"){
+   ["know","want"].forEach(function(side){ var o={};
+    q.rows.concat(["__other"]).forEach(function(r,ri){
+     var c=document.querySelector("input[name='"+q.id+"_"+side+"__"+ri+"']:checked"); if(!c) return;
+     var ot=r==="__other"?document.querySelector("[data-otherrow='"+q.id+"']").value.trim():"";
+     if(r==="__other"&&!ot) return;
+     o[r==="__other"?("Other: "+ot):r]=c.value; });
+    out.answers[q.id+"_"+side]=o; });
+   v=undefined;
+  }
+  else { v={}; q.rows.concat(["__other"]).forEach(function(r,ri){
+    var c=document.querySelector("input[name='"+q.id+"__"+ri+"']:checked"); if(!c) return;
+    var ot=r==="__other"?document.querySelector("[data-otherrow='"+q.id+"']").value.trim():"";
+    if(r==="__other"&&!ot) return;   // a rating on an unnamed "Other area" row means nothing
+    var name=r==="__other"?("Other: "+ot):r;
+    v[name]=c.value; }); }
+  if(v!==undefined) out.answers[q.id]=v;
+  var fb=document.querySelector("[data-fbt='"+q.id+"']").value.trim(); if(fb) out.feedback[q.id]=fb;
+ });});
+ out.submitted=new Date().toISOString();
+ return out;
+}
+function review(){
+ var a=answers(), h="<div class='steplab'>Review</div><h1 style='font-size:20px;margin:0 0 14px'>Check your answers</h1><div class='rev'>";
+ PARTS.forEach(function(p){p.qs.forEach(function(q){
+  var v=q.k==="grid2"?null:a.answers[q.id], s;
+  if(q.k==="grid2"){ var kn=a.answers[q.id+"_know"]||{}, wa=a.answers[q.id+"_want"]||{};
+   s=q.rows.concat(Object.keys(kn).concat(Object.keys(wa)).filter(function(x){return x.indexOf("Other: ")===0;}))
+    .filter(function(r,i,arr){return arr.indexOf(r)===i&&(kn[r]||wa[r]);})
+    .map(function(r){return r+": know "+(kn[r]||"—")+", want "+(wa[r]||"—");}).join(" · "); }
+  if(q.k==="grid2"){}
+  else if(Array.isArray(v)) s=v.length?v.join(" · "):"";
+  else if(typeof v==="object") s=Object.keys(v).map(function(k){return k+": "+v[k];}).join(" · ");
+  else s=v;
+  h+="<div class='row'><div class='k'>"+esc(q.t)+"</div><div>"+(s?esc(s):"<span class='empty'>— skipped</span>")
+    +(a.feedback[q.id]?"<span class='fbv'>💬 "+esc(a.feedback[q.id])+"</span>":"")+"</div></div>";
+ });});
+ document.getElementById("review").innerHTML=h+"</div><p class='sub' style='margin-top:12px'>Use Back to change anything.</p>";
+}
+function submit(){
+ var a=answers();
+ try{
+  localStorage.setItem("wcp.answers",JSON.stringify(a.answers));
+  localStorage.setItem("wcp.surveyFeedback",JSON.stringify(a.feedback));
+  var st=JSON.parse(localStorage.getItem("wcp.state")||"null");
+  if(st){ st.rescore=true; localStorage.setItem("wcp.state",JSON.stringify(st)); }
+ }catch(e){ alert("Your browser blocked saving (private mode?). The planner needs local storage to work."); return; }
+ location.href="board.html";
+}
+function go(n){
+ cur=n;
+ document.querySelectorAll(".part").forEach(function(x){x.classList.remove("on");});
+ if(n<PARTS.length) document.querySelector(".part[data-p='"+n+"']").classList.add("on");
+ else if(n===PARTS.length){ review(); document.getElementById("review").classList.add("on"); }
+ else document.getElementById("donep").classList.add("on");
+ [].forEach.call(prog.children,function(b,i){ b.className=i<n?"done":i===n?"on":""; });
+ document.getElementById("back").hidden=n===0||n>PARTS.length;
+ var nx=document.getElementById("next"); nx.hidden=n>PARTS.length;
+ nx.textContent=n===PARTS.length?"Submit":n===PARTS.length-1?"Review":"Next";
+ document.getElementById("where").textContent=n<PARTS.length?("Part "+(n+1)+" of "+PARTS.length+" — "+PARTS[n].title):n===PARTS.length?"Review":"";
+ window.scrollTo(0,0);
+}
+document.getElementById("next").onclick=function(){ if(cur===PARTS.length) submit(); else go(cur+1); };
+document.getElementById("back").onclick=function(){ go(cur-1); };
+go(0);
+try{ var prev=JSON.parse(localStorage.getItem("wcp.answers")||"null");
+ if(prev){ Object.keys(prev).forEach(function(k){ var v=prev[k];
+  if(Array.isArray(v)||typeof v==="string"){ (Array.isArray(v)?v:[v]).forEach(function(x){
+    var inp=document.querySelector("input[name='"+k+"'][value='"+String(x).replace(/'/g,"\\'")+"']");
+    if(inp) inp.checked=true;
+    else if(String(x).indexOf("Other: ")===0){ var o=document.querySelector("input[name='"+k+"'][value='__other']"); if(o){o.checked=true;
+      var q=document.querySelector(".q[data-q='"+k+"']"); q.querySelector(".other").classList.add("on"); q.querySelector("[data-other]").value=x.slice(7);} }
+    var ta=document.querySelector("[data-text='"+k+"']"); if(ta&&typeof v==="string") ta.value=v; }); }
+  else if(v&&typeof v==="object"){ var side=k.slice(k.lastIndexOf("_")+1), qid=k.slice(0,k.lastIndexOf("_"));
+   var q=PARTS.reduce(function(acc,p){return acc||p.qs.filter(function(z){return z.id===qid;})[0];},null);
+   if(q) Object.keys(v).forEach(function(area){ var ri=q.rows.indexOf(area); if(ri<0) return;
+     var inp=document.querySelector("input[name='"+qid+"_"+side+"__"+ri+"'][value='"+v[area]+"']"); if(inp) inp.checked=true; }); }
+ }); }
+}catch(e){}
+</script></body></html>
