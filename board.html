@@ -104,13 +104,13 @@ table.cal{width:100%;border-collapse:collapse;background:var(--card);border:1px 
 .pop button.pri,.pop>button{background:var(--ink);color:var(--plane)}
 .row{margin-top:10px;display:flex;gap:8px}
 @media(max-width:900px){.board{grid-template-columns:1fr}.srow{grid-template-columns:120px 1fr}.srow .sv{grid-column:1/-1}}
-</style>
+.privacy{background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--green,#1baf7a);border-radius:8px;padding:9px 13px;margin:0 0 16px;font-size:13px;color:var(--ink2)}.pv{font-size:12px;color:var(--ink2)}</style>
 <script>try{var th=localStorage.getItem("wcp.theme");if(th)document.documentElement.dataset.theme=th;}catch(e){}</script>
 </head><body>
-<header class="top"><h1>Your two years at Wharton</h1>
+<header class="top"><h1>Your two years at Wharton</h1><span class="pv" title="Nothing you enter is stored on a server or sent anywhere — your answers and plan stay in this browser.">🔒 Saved only in this browser</span>
   <span class="theme"><button data-theme-set="auto" title="Follow my system">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></span>
   <button data-feedback="1">Feedback</button><a href="index.html">Redo survey</a><button data-startover="1">Start over</button></header>
-<main id="app"></main>
+<main id="app"></main><footer style="padding:0 24px 40px"><div class='privacy'><b>Privacy:</b> nothing you enter is stored on a server or sent anywhere. Your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them.</div></footer>
 <script src="data.js"></script>
 <script src="board.js"></script>
 </body></html>
