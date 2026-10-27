@@ -161,7 +161,9 @@
       else if (full || e.why !== "parked") todo.push(e);
     });
     var load = {};
-    FUTURE.forEach(function (t) { load[t] = { cu: 0, q: 0, Q1: 0, Q2: 0 }; });
+    // flex core may also go in the first fall, after fixed core; other classes start with FUTURE
+    var PLACEABLE = FUTURE.indexOf(TERMS[1]) < 0 ? [TERMS[1]].concat(FUTURE) : FUTURE;
+    PLACEABLE.forEach(function (t) { load[t] = { cu: 0, q: 0, Q1: 0, Q2: 0 }; });
     function add(t, slot, cu, code) {
       var L = load[t]; if (!L) return;
       L.cu += cu; L.q += isQuant(code) ? 1 : 0;
@@ -172,7 +174,7 @@
     var qcap = function (t) { return heavy.indexOf(t) >= 0 ? RQCAP : QCAP; };
     var early = {}; Object.keys(REQ_MAJ).forEach(function (c) { early[c] = 1; });
     Object.keys(D.prereqs).forEach(function (k) { D.prereqs[k].forEach(function (p) { early[p] = 1; }); });
-    var tier = function (c) { return CORE_CODES[c] ? 0 : early[c] ? 1 : 2; };
+    var tier = function (c) { return FIXED_CORE[c] || c === "MGMT 6100" ? -1 : CORE_CODES[c] ? 0 : early[c] ? 1 : 2; };   // fixed core first, then flex
     var tgt = function (t) { return heavy.indexOf(t) >= 0 ? RTARGET : TARGET; };
     var room = function (t, cu) { return (load[t].cu + cu) / tgt(t); };   // share of the term's target used after adding this class
     var firstFall = TERMS[1], fq = { Q1: 0, Q2: 0 };
@@ -188,14 +190,16 @@
       // Fixed core is taken in the first fall at Wharton — place it there even when that term has started
       if (FIXED_CORE[c]) {
         var fs = FIRST_FALL_SLOT[c] || ((cu >= 1 || FULLHALF[c]) ? "Full" : (fq.Q1 <= fq.Q2 ? "Q1" : "Q2")); if (fs !== "Full") fq[fs] += cu;
+        add(firstFall, fs, cu, c);
         placed[c] = [firstFall, fs, "fixed core — taken in your first fall"]; termOf[c] = firstFall; return;
       }
-      var after = (D.prereqs[c] || []).map(function (p) { return FUTURE.indexOf(termOf[p]); }).filter(function (i) { return i >= 0; });
+      var SEQ = tier(c) === 0 ? PLACEABLE : FUTURE;
+      var after = (D.prereqs[c] || []).map(function (p) { return SEQ.indexOf(termOf[p]); }).filter(function (i) { return i >= 0; });
       var start = after.length ? Math.max.apply(null, after) + 1 : 0;
       // …and before any already-placed class that needs it as a prerequisite (found by testing, Oct 27)
-      var needers = Object.keys(D.prereqs).filter(function (k) { return D.prereqs[k].indexOf(c) >= 0 && FUTURE.indexOf(termOf[k]) >= 0; });
-      var before = needers.length ? Math.min.apply(null, needers.map(function (k) { return FUTURE.indexOf(termOf[k]); })) : FUTURE.length;
-      var opts = FUTURE.slice(start, Math.max(start + 1, before)); if (!opts.length) opts = FUTURE.slice(-1);
+      var needers = Object.keys(D.prereqs).filter(function (k) { return D.prereqs[k].indexOf(c) >= 0 && SEQ.indexOf(termOf[k]) >= 0; });
+      var before = needers.length ? Math.min.apply(null, needers.map(function (k) { return SEQ.indexOf(termOf[k]); })) : SEQ.length;
+      var opts = SEQ.slice(start, Math.max(start + 1, before)); if (!opts.length) opts = SEQ.slice(-1);
       var off = offered(c), runs = off ? opts.filter(function (t) { return t.indexOf(off[0]) === 0; }) : [];
       if (off && off[2] === "year1") runs = runs.filter(function (t) { return t === TERMS[2]; });
       if (off && runs.length) opts = runs;   // only the semesters the department says it runs

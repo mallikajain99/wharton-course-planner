@@ -85,7 +85,29 @@ test("three flex-core classes → all three on the calendar, early when front-lo
     await page.locator(`input[data-pick='${code}']`).first().check();
   }
   await view(page, "calendar");
-  for (const c of ["ACCT 6110", "FNCE 6110", "MGMT 6120"]) expect(await calTerm(page, c)).toBe("Spring '27");
+  for (const c of ["ACCT 6110", "FNCE 6110", "MGMT 6120"]) expect(await calTerm(page, c)).toBe("Fall '26");   // first fall, after fixed core
+});
+
+test("flex core fills the first fall only after fixed core; electives never go there", async ({ page }) => {
+  const s = Object.assign({}, P("q01-01"), { class: "Class of 2028", frontload: "Yes — get core done early", recruit_terms: ["Not recruiting"] });
+  await board(page, s, "#core");
+  for (const [area, code] of [["Marketing Management", "MKTG 6110"], ["Microeconomics", "BEPP 6110"], ["Statistics", "STAT 6130"]]) {
+    await page.locator(`label:has(input[data-core='${area}'][value='take'])`).click();
+    await page.locator(`input[data-pick='${code}']`).check();
+  }
+  for (const [area, code] of [["Accounting", "ACCT 6110"], ["Corporate finance", "FNCE 6110"], ["Management", "MGMT 6120"], ["Macroeconomics", "FNCE 6130"]]) {
+    await page.locator(`label:has(input[data-core='${area}'][value='take'])`).click();
+    await page.locator(`input[data-pick='${code}']`).first().check();
+  }
+  await view(page, "electives");
+  for (let i = 0; i < 3; i++) await page.locator(".col:nth-child(2) .card[data-code]").first().locator("[data-decide='yes']").click();
+  await view(page, "calendar"); await page.click("[data-resuggest]");
+  const plan = await page.evaluate(() => window.__wcp.S.plan);
+  const cu = await page.evaluate(() => Object.fromEntries(Object.keys(window.__wcp.S.plan).map(k => [k, window.__wcp.cuOf(k)])));
+  for (const c of ["MKTG 6110", "BEPP 6110", "STAT 6130"]) expect(plan[c].term, c).toBe("Fall '26");
+  const fall = Object.keys(plan).filter(k => plan[k].term === "Fall '26").reduce((t, k) => t + cu[k], 0);
+  expect(fall).toBeLessThanOrEqual(4.5);
+  for (const k of Object.keys(plan)) if (!/^(MKTG 6110|BEPP 6110|STAT 6130|ACCT 6110|FNCE 6110|MGMT 6120|FNCE 6130)$/.test(k)) expect(plan[k].term, k).not.toBe("Fall '26");
 });
 
 test("Statistics: Take lists STAT 6130, Placement lists STAT 6210, Waived is allowed", async ({ page }) => {
