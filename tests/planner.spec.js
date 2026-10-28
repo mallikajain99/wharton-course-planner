@@ -11,7 +11,8 @@ async function takeSurvey(page, opts = {}) {
   await pick("background", "Consulting");
   await pick("background", "__other");
   await page.fill("[data-other='background']", "Teacher"); await next();
-  await page.keyboard.press("c");                 // keyboard: letter C picks the third option (Excel modeling)
+  const letter = await page.locator(".part.on .opts label:has(input[value='Excel modeling']) kbd").textContent();
+  await page.keyboard.press(letter.toLowerCase());   // keyboard: that option's letter picks it
   await expect(page.locator("input[name='skills'][value='Excel modeling']")).toBeChecked(); await next();
   await pick("roles", "Founder / startup");
   await pick("roles", "Product management"); await next();
@@ -125,7 +126,7 @@ test("add your own class, theme toggle persists, feedback opens", async ({ page 
   await page.reload();
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
   await page.click("[data-feedback]");
-  await expect(page.locator(".pop")).toContainText("Nothing is sent automatically");
+  await expect(page.locator(".pop")).toContainText("Nothing is sent until you do");
 });
 
 test("redo survey is prefilled; start over clears everything", async ({ page }) => {

@@ -46,6 +46,7 @@ table.grid{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;b
 .fb{margin-top:22px;font-size:12.5px}
 .fb a{color:var(--muted);cursor:pointer;text-decoration:none}.fb a:hover{color:var(--acc)}
 .fb textarea{display:none;margin-top:6px;min-height:54px}.fb.on textarea{display:block}
+.fb .fbsend{display:none;margin-top:8px;padding:7px 14px;font-size:13px;color:var(--acc)}.fb.on .fbsend{display:inline-block}
 .nav{position:fixed;left:40%;right:0;bottom:0;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);padding:16px 52px;display:flex;gap:12px;align-items:center}
 .nav .sp{flex:1;color:var(--muted);font-size:13px}
 .nav.full{left:0;justify-content:center}.nav.full .sp{display:none}
@@ -130,6 +131,12 @@ var PARTS=[
    know:[["None",""],["Some","basics"],["Working","use it at work"],["Expert","could teach it"]],
    want:[["Skip",""],["Fluent","understand it"],["Solid","can do the work"],["Deep","specialist"]]}]}
 ];
+// Answer options in alphabetical order where order carries no meaning; catch-alls stay last.
+// Not sorted: class year, recruiting semesters, front-loading, the depth grid.
+var ALPHA={background:1,skills:1,roles:1,industries:1,topics:1,majors:1}, LAST=/^(None of these|Undecided|Not sure)/;
+PARTS.forEach(function(p){ p.qs.forEach(function(q){ if(!ALPHA[q.id]||!q.o) return;
+ var keep=q.o.filter(function(x){return LAST.test(x);}), rest=q.o.filter(function(x){return !LAST.test(x);});
+ q.o=rest.sort(function(a,b){return a.localeCompare(b,"en",{sensitivity:"base"});}).concat(keep); }); });
 var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
 var html="", QS=[];
 PARTS.forEach(function(p,pi){ p.qs.forEach(function(q){ QS.push({q:q,pi:pi}); }); });
@@ -144,7 +151,7 @@ html+="<div class='part welcome' data-s='0'><div class='intro'><div class='logo'
  +"<li><i>3</i><div><b>Pick major and elective courses from your recommendations</b><span>Every Wharton class is ranked for you, with the strongest matches labeled Best fit or Good fit. What you pick counts toward your majors, so you can see how close you are to completing each one.</span></div></li>"
  +"<li><i>4</i><div><b>Arrange your calendar</b><span>Your picks are placed semester by semester, so you can check that everything fits in two years before you register. Drag, drop and lock in classes to create your perfect schedule!</span></div></li>"
  +"</ol>"
- +"<p class='privacy'><b>Privacy:</b> Nothing you enter is stored on a server or sent anywhere — your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them. We count anonymous visits, completed surveys and started plans (never your answers or any personal details) to see how many people use the planner.</p>"
+ +"<p class='privacy'><b>Privacy:</b> Nothing you enter is stored on a server or sent anywhere — your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them. We count anonymous visits, completed surveys and started plans (never your answers or any personal details) to see how many people use the planner. Feedback you choose to send goes to the planner's creator through Google Forms, only when you click Submit there.</p>"
  +"</div></div>";
 QS.forEach(function(x,qi){
  var q=x.q, p=PARTS[x.pi];
@@ -170,7 +177,8 @@ QS.forEach(function(x,qi){
    });
    html+="</table>";
   }
-  html+="<div class='fb'><a data-fb='"+q.id+"'>💬 Feedback on this question</a><textarea data-fbt='"+q.id+"' placeholder='Your feedback — wording, missing options, should it be cut?'></textarea></div></div></div></div>";
+  html+="<div class='fb'><a data-fb='"+q.id+"'>💬 Feedback on this question</a><textarea data-fbt='"+q.id+"' placeholder='Your feedback — wording, missing options, should it be cut?'></textarea>"
+   +"<button class='fbsend' data-fbsend='"+q.id+"' data-where='"+esc("Q"+(qi+1)+" · "+q.t)+"'>Send feedback</button></div></div></div></div>";
 });
 document.getElementById("parts").innerHTML=html;
 var REVIEW=QS.length+1, cur=0;
@@ -189,6 +197,14 @@ document.addEventListener("click",function(e){
  themeMark();
 });
 try{ themeMark(); }catch(e){}
+//
+var FORM="https://docs.google.com/forms/d/e/1FAIpQLSeB0OjNLh4SqElKKX8qzFYepyg92OUG26tfyWIipcVdLw13uA/viewform?usp=pp_url";
+document.addEventListener("click",function(e){
+ var b=e.target.closest&&e.target.closest("[data-fbsend]"); if(!b) return;
+ var ta=document.querySelector("[data-fbt='"+b.dataset.fbsend+"']"), t=ta.value.trim(); if(!t){ ta.focus(); return; }
+ window.open(FORM+"&entry.1919234374="+encodeURIComponent(b.dataset.where)+"&entry.499249756="+encodeURIComponent(t),"_blank","noopener");
+ b.textContent="Opened the form ✓ — click Submit there";
+});
 document.addEventListener("click",function(e){
  var a=e.target.closest&&e.target.closest("[data-fb]"); if(!a) return;
  var f=a.parentNode; f.classList.toggle("on"); if(f.classList.contains("on")) f.querySelector("textarea").focus();

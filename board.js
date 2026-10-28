@@ -1036,23 +1036,22 @@
     o.onclick = function (ev) { if (ev.target === o || ev.target.tagName === "BUTTON") o.remove(); };
     document.body.appendChild(o);
   }
+  //
+  var FORM = "https://docs.google.com/forms/d/e/1FAIpQLSeB0OjNLh4SqElKKX8qzFYepyg92OUG26tfyWIipcVdLw13uA/viewform?usp=pp_url", F_WHERE = "entry.1919234374", F_TEXT = "entry.499249756";
+  var PAGE_NAME = { overview: "Overview page", core: "Core page", majors: "Majors page", electives: "Major & elective courses page", calendar: "Calendar page", sources: "Sources page" };
+  function formUrl(where, text) { return FORM + "&" + F_WHERE + "=" + encodeURIComponent(where) + "&" + F_TEXT + "=" + encodeURIComponent(text); }
   function feedback() {
     countEvent("feedback-opened", "Feedback opened", false);
-    var sf = {}; try { sf = JSON.parse(localStorage.getItem("wcp.surveyFeedback") || "{}"); } catch (e) {}
+    var where = PAGE_NAME[currentView()] || "Overview page";
     var o = document.createElement("div");
     o.className = "pop-o";
-    o.innerHTML = "<div class='pop wide'><b>Feedback</b><p>What worked, what didn't, what you'd change? Click Copy, then text or email it back to whoever shared this with you. Nothing is sent automatically.</p>"
-      + "<textarea id='fbtext' rows='6' placeholder='Your thoughts…'></textarea><div class='row'><button id='fbcopy' class='pri'>Copy</button> <button id='fbclose'>Close</button></div></div>";
+    o.innerHTML = "<div class='pop wide'><b>Feedback on the " + esc(where) + "</b><p>What worked, what didn't, what you'd change? Send opens a short Google Form with this filled in — click Submit there. Nothing is sent until you do.</p>"
+      + "<textarea id='fbtext' rows='6' placeholder='Your thoughts…'></textarea><div class='row'><button id='fbsend' class='pri'>Send</button> <button id='fbclose'>Close</button></div></div>";
     document.body.appendChild(o);
     $("#fbclose").onclick = function () { o.remove(); };
-    $("#fbcopy").onclick = function () {
-      var plan = entries().map(function (e) { return (e.own ? e.title : e.code) + (e.term ? " (" + e.term + ")" : ""); });
-      var recs = Object.keys(LABEL).filter(function (c) { return LABEL[c]; });
-      var txt = "Course planner feedback\n\n" + $("#fbtext").value + "\n\n— Survey notes: " + JSON.stringify(sf)
-        + "\n— Picked (" + plan.length + "): " + plan.join(", ") + "\n— Recommended picked: " + recs.filter(function (c) { return S.plan[c]; }).length + " of " + recs.length
-        + "\n— Ruled out recommended: " + recs.filter(function (c) { return S.dec[c] === "no"; }).join(", ");
-      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { $("#fbcopy").textContent = "Copied ✓"; },
-        function () { $("#fbtext").value = txt; $("#fbtext").select(); $("#fbcopy").textContent = "Select-all copied text above"; });
+    $("#fbsend").onclick = function () {
+      var t = $("#fbtext").value.trim(); if (!t) return $("#fbtext").focus();
+      window.open(formUrl(where, t), "_blank", "noopener"); o.remove();
     };
   }
   window.__wcp = { offered: offered, S: S, addToPlan: addToPlan, removeFromPlan: removeFromPlan, schedule: schedule, resuggest: resuggest,

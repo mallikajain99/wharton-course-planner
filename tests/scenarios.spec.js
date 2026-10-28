@@ -652,3 +652,37 @@ test("survey has the light/dark switch and the choice carries to the board", asy
   await page.click(".themesw [data-theme-set='auto']");
   expect(await page.evaluate(() => document.documentElement.dataset.theme || "")).toBe("");
 });
+
+test("survey answer lists are alphabetical where it makes sense; catch-alls last; timelines unchanged", async ({ page }) => {
+  await page.goto("/index.html"); await page.evaluate(() => localStorage.clear()); await page.reload();
+  const opts = q => page.locator(`.q[data-q='${q}'] .opts input`).evaluateAll(xs => xs.map(x => x.value));
+  for (const q of ["background", "skills", "roles", "industries", "topics", "majors"]) {
+    const v = (await opts(q)).filter(x => x !== "__other" && !/^(None of these|Undecided|Not sure)/.test(x));
+    expect(v, q).toEqual([...v].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })));
+  }
+  expect((await opts("skills")).slice(-1)[0]).toBe("None of these");
+  expect((await opts("roles")).filter(x => x !== "__other").slice(-1)[0]).toBe("Undecided");
+  expect((await opts("majors")).slice(-1)[0]).toMatch(/^Not sure/);
+  expect(await opts("recruit_terms")).toEqual(["Fall of year 1", "Spring of year 1", "Fall of year 2", "Spring of year 2", "Not recruiting"]);
+});
+
+test("feedback: Send opens the Google Form with Where = the page (board) or 'Q1 · question' (survey)", async ({ page }) => {
+  await page.addInitScript(() => { window.__opened = []; window.open = u => { window.__opened.push(u); return null; }; });
+  await board(page, P("q01-01"), "#majors");
+  await page.click("[data-feedback]");
+  await expect(page.locator(".pop")).toContainText("Feedback on the Majors page");
+  await page.fill("#fbtext", "The pillars are clear.");
+  await page.click("#fbsend");
+  let u = decodeURIComponent((await page.evaluate(() => window.__opened[0])).replace(/\+/g, " "));
+  expect(u).toContain("docs.google.com/forms");
+  expect(u).toContain("entry.1919234374=Majors page");
+  expect(u).toContain("entry.499249756=The pillars are clear.");
+  await page.goto("/index.html"); await page.click("#next");
+  await page.click(".part.on [data-fb]");
+  await page.fill(".part.on [data-fbt]", "Add Class of 2029?");
+  await page.click(".part.on [data-fbsend]");
+  u = decodeURIComponent((await page.evaluate(() => window.__opened[0])));
+  expect(u).toContain("entry.1919234374=Q1 · Which class are you in?");
+  expect(u).toContain("entry.499249756=Add Class of 2029?");
+  await expect(page.locator("footer .privacy, .privacy").first()).toContainText("Google Forms");
+});
