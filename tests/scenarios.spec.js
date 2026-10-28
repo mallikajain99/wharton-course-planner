@@ -731,3 +731,17 @@ test("calendar: Show filter fades other classes; + Add from a major adds and sho
   await page.click("[data-show='all']");
   await expect(page.locator(".cal .chip.dim")).toHaveCount(0);
 });
+
+test("status back to Not started unlocks — unless the class was locked by hand first", async ({ page }) => {
+  await board(page, P("q02-03"), "#electives");
+  const cards = page.locator(".col:nth-child(2) .card[data-code]");
+  const a = await cards.nth(0).getAttribute("data-code"); await cards.nth(0).locator("[data-decide='yes']").click();
+  const b = await cards.nth(0).getAttribute("data-code"); await cards.nth(0).locator("[data-decide='yes']").click();
+  await view(page, "calendar");
+  const locked = c => page.evaluate(x => !!window.__wcp.S.plan[x].locked, c);
+  for (let i = 0; i < 3; i++) await page.locator(`[data-status='${a}']`).click();   // in progress → taken → not started
+  expect(await locked(a)).toBe(false);
+  await page.locator(`[data-chip='${b}'] [data-lock]`).click();                      // locked by hand first
+  for (let i = 0; i < 3; i++) await page.locator(`[data-status='${b}']`).click();
+  expect(await locked(b)).toBe(true);
+});

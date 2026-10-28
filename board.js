@@ -1036,7 +1036,7 @@
     if (d.filter) { ui.filter = d.filter; ui.maybeMore = 60; return render(); }
     if (d.more) { ui.maybeMore += 60; return render(); }
     if (d.noopen) { ui.noOpen = !ui.noOpen; return render(); }
-    if (d.lock) { e.preventDefault(); var en = S.plan[d.lock]; en.locked = !en.locked; return commit(); }
+    if (d.lock) { e.preventDefault(); var en = S.plan[d.lock]; en.locked = !en.locked; delete en.autoLock; return commit(); }   //
     if (d.resuggest) { resuggest(); return commit(); }
     if (d.delown) { delete S.plan[d.delown]; S.changes += 1; return commit(); }
     if (d.themeSet) {
@@ -1050,8 +1050,9 @@
       location.href = "index.html"; return;
     }
     if (d.feedback) return feedback();
-    if (d.status) { e.preventDefault(); var se = S.plan[d.status]; se.status = se.status === "" || !se.status ? "inprogress" : se.status === "inprogress" ? "taken" : ""; if (!se.status) delete se.status;
-      else se.locked = true;   // in progress or taken locks it in place
+    if (d.status) { e.preventDefault(); var se = S.plan[d.status]; se.status = se.status === "" || !se.status ? "inprogress" : se.status === "inprogress" ? "taken" : "";
+      if (se.status) { if (!se.locked) se.autoLock = true; se.locked = true; }   // in progress / taken locks it…
+      else { delete se.status; if (se.autoLock) se.locked = false; delete se.autoLock; }   //
       return commit(); }
     if (d.show) { ui.show = d.show; return render(); }
     if (d.leftall) { ui.leftAll = !ui.leftAll; return render(); }
