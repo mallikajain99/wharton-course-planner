@@ -841,6 +841,7 @@
           .map(function (m) { return "<span class='tg' style='--c:" + MAJ_COLOR[m] + "'>" + esc(MAJ_SHORT[m]) + "</span>"; }).join(""))
       + (cat === "el" && !e.own ? "<span class='tg'>Elective</span>" : "");
     return "<div class='chip k " + (st === "taken" ? "done" : st === "inprogress" ? "inprog" : locked ? "locked" : "sugg") + (showMatch(e.code) ? "" : " dim") + "' draggable='true' data-chip='" + esc(e.code) + "'" + (e.why ? " title=\"" + esc(e.why) + "\"" : "") + ">"
+      + "<button class='kx' data-rmcal='" + esc(e.code) + "' title='Remove from plan' aria-label='Remove " + esc(e.code) + " from plan'>×</button>"
       + "<div class='ktop'><button class='lk " + (locked ? "on" : "off") + "' data-lock='" + esc(e.code) + "' title='" + (locked ? "Locked in this term — click to unlock" : "Suggested — click to lock it in this term") + "'>" + (locked ? LOCK_ON : LOCK_OFF) + "</button>"
       + "<b>" + esc(e.own ? (e.shown || "Own") : e.code) + "</b><em class='cu'>" + fmt(cuOf(e.code)) + " CU</em>" + (twice ? "<span class='twice'>×2</span>" : "") + (isQuant(e.code) ? "<span class='qh'>∑</span>" : "")
       + "<button class='stb " + (st || "none") + "' data-status='" + esc(e.code) + "' title='" + STATUS[st][2] + "'>" + (STATUS[st][0] ? STATUS[st][0] + " " : "") + STATUS[st][1] + "</button></div>"
@@ -1035,7 +1036,7 @@
     S.changes += 1; placeNew(); commit();
   });
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall]");
+    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall],[data-rmcal]");
     if (!b) return;
     var d = b.dataset;
     if (d.decide) {
@@ -1067,6 +1068,7 @@
       if (se.status) { if (!se.locked) se.autoLock = true; se.locked = true; }   // in progress / taken locks it…
       else { delete se.status; if (se.autoLock) se.locked = false; delete se.autoLock; }   //
       return commit(); }
+    if (d.rmcal) { e.preventDefault(); return calRemove(d.rmcal); }
     if (d.show) { ui.show = d.show; return render(); }
     if (d.leftall) { ui.leftAll = !ui.leftAll; return render(); }
     if (d.addplan) { addToPlan(d.addplan); commit(); toastAdded(d.addplan); return askDouble(d.addplan); }
@@ -1140,6 +1142,36 @@
       document.body.appendChild(o);
       setTimeout(function () { o.classList.add("bye"); setTimeout(function () { o.remove(); }, 400); }, 2600);
     } catch (err) {}
+  }
+  // × on a Calendar class (approved mockup, Oct 28): unlocked goes straight away with Undo; locked / started asks first.
+  // Removing = decided No, so it stays out of the plan and the Majors page lists it under No.
+  function calRemove(c) {
+    var e = S.plan[c]; if (!e) return;
+    if (!e.locked && !e.status) return doCalRemove(c);
+    var name = e.own ? e.title : c, sets = assignment().set[c] || [];
+    var title = e.status === "taken" ? "Remove a class you've taken?" : e.status === "inprogress" ? "Remove a class in progress?" : "Remove a locked class?";
+    var why = e.status === "taken" ? "You marked <strong>" + esc(name) + "</strong> as Taken." : e.status === "inprogress" ? "You marked <strong>" + esc(name) + "</strong> as In progress."
+      : "You locked <strong>" + esc(name) + "</strong> into " + esc(termLabel(c)) + ".";
+    if (sets.length) why += " It counts toward <strong>" + esc(sets.join(" and ")) + "</strong>, so " + (sets.length > 1 ? "those majors lose" : "that major loses") + " " + fmt(cuOf(c)) + " CU.";
+    if (countsAsCore(c)) why += " It's <strong>required core</strong>; if you remove it, you'll need to waive that area or cover it another way.";
+    var o = document.createElement("div"); o.className = "pop-o";
+    o.innerHTML = "<div class='pop rmpop'><b>" + title + "</b><p>" + why + "</p><div class='row'><button class='pri' data-cancel='1'>Keep it</button><button class='danger' data-rmgo='1'>Remove</button></div></div>";
+    o.onclick = function (ev) {
+      if (ev.target === o || (ev.target.dataset && ev.target.dataset.cancel)) return o.remove();
+      if (ev.target.dataset && ev.target.dataset.rmgo) { o.remove(); doCalRemove(c); }
+    };
+    document.body.appendChild(o);
+  }
+  function doCalRemove(c) {
+    var e = S.plan[c], snap = JSON.parse(JSON.stringify(e)), had = S.dec[c], wasDbl = isDouble(c), where = termLabel(c);
+    removeFromPlan(c); if (!e.own) S.dec[c] = "no"; commit();
+    var old = document.querySelector(".toast"); if (old) old.remove();
+    var o = document.createElement("div"); o.className = "toast";
+    o.innerHTML = "Removed " + esc(e.own ? e.title : c) + (where && where !== "Needs semester" ? " from <b>" + esc(where) + "</b>" : "") + " <button class='undo'>Undo</button>";
+    o.querySelector(".undo").onclick = function () { fresh(); S.plan[c] = snap; if (had === undefined) delete S.dec[c]; else S.dec[c] = had; S.changes += 1; o.remove(); commit(); };
+    document.body.appendChild(o);
+    setTimeout(function () { o.classList.add("bye"); setTimeout(function () { o.remove(); }, 400); }, 5000);
+    if (wasDbl) freedDouble(c);
   }
   function popup(title, text) {
     var o = document.createElement("div");

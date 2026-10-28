@@ -41,6 +41,43 @@ test("five majors: all five show, then drop to two — tags, filters, overview a
   await expect(page.locator("input[name='majors'][value='Real Estate']")).not.toBeChecked();
 });
 
+test("× on a calendar class: unlocked goes with Undo, removed = decided No, locked and taken ask first", async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 2400 });
+  await board(page, P("x-five-majors"), "#calendar");
+  for (let i = 0; i < 4; i++) await page.locator("[data-addplan]").first().click();   // plans start empty — add four from the majors list
+  await expect(page.locator(".cal .chip.k")).toHaveCount(4);
+  const codes = await page.locator(".cal .chip.k.sugg").evaluateAll(els => els.map(e => e.dataset.chip));
+  expect(codes.length).toBeGreaterThan(3);
+  const [a, b, c] = codes;
+  const chipOf = code => page.locator(`.cal [data-chip='${code}']`);
+  // unlocked: straight away, bottom note with Undo
+  await chipOf(a).hover(); await chipOf(a).locator(".kx").click();
+  await expect(chipOf(a)).toHaveCount(0);
+  await expect(page.locator(".toast")).toContainText("Removed " + a);
+  await page.click(".toast .undo");
+  await expect(chipOf(a)).toHaveCount(1);
+  await chipOf(a).hover(); await chipOf(a).locator(".kx").click();
+  await expect(chipOf(a)).toHaveCount(0);
+  expect(await page.evaluate(k => JSON.parse(localStorage.getItem("wcp.state")).dec[k], a)).toBe("no");   // removed = decided No
+  await page.click("[data-resuggest]");
+  await expect(chipOf(a)).toHaveCount(0);                                                                // Re-suggest leaves it out
+  // locked: warns, Keep it keeps it, Remove removes it
+  await chipOf(b).locator(".lk").click();
+  await chipOf(b).hover(); await chipOf(b).locator(".kx").click();
+  await expect(page.locator(".pop")).toContainText("Remove a locked class?");
+  await page.click(".pop [data-cancel]");
+  await expect(chipOf(b)).toHaveCount(1);
+  await chipOf(b).hover(); await chipOf(b).locator(".kx").click();
+  await page.click(".pop [data-rmgo]");
+  await expect(chipOf(b)).toHaveCount(0);
+  // taken: stronger wording
+  await chipOf(c).locator(".stb").click(); await chipOf(c).locator(".stb").click();
+  await chipOf(c).hover(); await chipOf(c).locator(".kx").click();
+  await expect(page.locator(".pop")).toContainText("Remove a class you've taken?");
+  await page.click(".pop [data-cancel]");
+  await expect(chipOf(c)).toHaveCount(1);
+});
+
 test("add a major from the Majors page", async ({ page }) => {
   await board(page, P("x-no-majors"), "#majors");
   await expect(page.locator(".cg[data-major]")).toHaveCount(0);

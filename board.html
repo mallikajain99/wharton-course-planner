@@ -221,6 +221,10 @@ footer{padding:0 30px 40px}
 .chip.k.sugg{border-style:dashed}.chip.k.locked{border-color:var(--acc);background:var(--accSoft)}
 .chip.k.inprog{border-color:var(--amber-bd);background:var(--amber-bg)}.chip.k.done{border-color:var(--green);background:var(--green-bg)}
 .chip.k.dim{opacity:.22}
+.chip.k{position:relative}.kx{position:absolute;top:-8px;right:-8px;width:20px;height:20px;padding:0;border-radius:50%;border:1.5px solid var(--rule);background:var(--card);color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;line-height:1;display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s;z-index:2}
+.chip.k:hover .kx,.kx:focus-visible{opacity:1}.kx:hover{color:var(--red);border-color:var(--red)}
+@media (hover:none){.kx{opacity:1}}
+.toast .undo{background:none;border:0;color:var(--bg);font:inherit;font-weight:900;text-decoration:underline;cursor:pointer;padding:0 0 0 6px}
 /* the whole box is the drag handle — inner rows don't swallow the press (testing found drags never started) */
 .chip.k .ktop,.chip.k .kbot{pointer-events:none}.chip.k button{pointer-events:auto}
 .k .ktop{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.k .ktop b{font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:nowrap}.k .ktop .cu{font-style:normal;white-space:nowrap}
