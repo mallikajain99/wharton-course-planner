@@ -373,11 +373,14 @@
   // (S.count) always wins, even over the cap — then the warning turns red.
   function assignment() { return memo("asg", assignment0); }
   function assignment0() {
-    var set = {}, manual = {}, trimmed = {};
+    var set = {}, manual = {}, trimmed = {}, flex = flexUsed();
     Object.keys(S.plan).forEach(function (c) {
       if (S.plan[c].own || FIXED_CORE[c] || coreSubs()[c]) return;
       var el = explored.filter(function (n) { return ALLM[n] && ALLM[n].total && eligible(c, ALLM[n]); });
       if (!el.length) return;
+      // a class filling the OIDD flex core can't also count toward a major that forbids it (E&I, AI…) — an empty set
+      // means "counts toward none", so tags, filters and the export stop naming those majors
+      if (flex[c]) el = el.filter(function (n) { return noFlexMajors(c).indexOf(n) < 0; });
       if (S.count && S.count[c]) { manual[c] = 1; set[c] = el.filter(function (n) { return S.count[c].indexOf(n) >= 0; }); }
       else set[c] = el.slice();
     });
@@ -657,7 +660,8 @@
     }).join("");
   }
   // ---- double-counting prompts: so a good double count isn't missed and none happens by accident
-  function dblMajors(c) { return majorsFor(c).filter(function (m) { return ALLM[m] && ALLM[m].total; }); }
+  function flexBlocked(c, m) { return !!S.plan[c] && !!flexUsed()[c] && noFlexMajors(c).indexOf(m) >= 0; }
+  function dblMajors(c) { return majorsFor(c).filter(function (m) { return ALLM[m] && ALLM[m].total && !flexBlocked(c, m); }); }
   function isDouble(c) { var a = assignment(); return !!(a.set[c] && a.set[c].length > 1); }
   function dblUsed(except) { var a = assignment(); return Object.keys(a.set).reduce(function (t, k) { return t + (k !== except && a.set[k].length > 1 ? cuOf(k) : 0); }, 0); }
   function couldDouble() {   // picked classes that fit 2+ majors but count toward only one
@@ -716,7 +720,7 @@
   }
   function countToggle(c) {
     if (!S.plan[c]) return "";
-    var a = assignment(), el = majorsFor(c).filter(function (m) { return ALLM[m] && ALLM[m].total; });
+    var a = assignment(), el = majorsFor(c).filter(function (m) { return ALLM[m] && ALLM[m].total && !flexBlocked(c, m); });
     if (el.length < 2 || !a.set[c]) return "";
     var on = a.set[c], man = !!a.manual[c];
     return "<div class='cnt'><span class='cst-l'>Counts toward:</span>" + el.map(function (m) {
@@ -754,9 +758,11 @@
     };
     var yes = all.filter(function (c) { return S.plan[c]; }), no = all.filter(function (c) { return !S.plan[c] && S.dec[c] === "no"; });
     var maybe = all.filter(function (c) { return !S.plan[c] && S.dec[c] !== "no"; }).sort(function (a, b) { return (SCORE[b] || -99) - (SCORE[a] || -99); });
-    var h = "<h2>Electives</h2><p class='sub'><b>Every Wharton class outside core — including the ones that count toward your majors.</b> "   // renamed from "Major & elective courses"
+    var tot = entries().reduce(function (t, e) { return t + cuOf(e.code); }, 0);
+    // how much is left to 19 sits beside the title
+    var h = "<div class='ehead'><div class='et'><h2>Electives</h2><p class='sub'><b>Every Wharton class outside core — including the ones that count toward your majors.</b> "   // renamed from "Major & elective courses"
       + (Object.keys(subs).length ? "Classes you're using as a core substitute are counted under Core instead. " : "")
-      + "Best matches first · ✓ adds to your plan · ✕ rules it out.</p>";
+      + "Best matches first · ✓ adds to your plan · ✕ rules it out.</p></div>" + totalCard(tot, 100 * tot / 19, true) + "</div>";
     h += "<div class='chips'>" + [["all", "All"]].concat(explored.map(function (m) { return [m, MAJ_SHORT[m]]; })).concat(explored.length ? [["none", "All other Wharton electives"]] : []).map(function (f) {
       return "<button class='chip" + (ui.filter === f[0] ? " on" : "") + "' data-filter='" + esc(f[0]) + "'>" + esc(f[1]) + "</button>";
     }).join("") + "<input id='q' class='search' placeholder='Search classes' value='" + esc(ui.q) + "'></div>";
@@ -907,12 +913,13 @@
   // 19 CU to graduate; tuition covers up to 21. Over 19 the ring is full and a teal outer ring fills
   // across the 2 covered CU; over 21 it turns red with "N CU you'd pay for". Approved mockup: design/mockup-total-cap.html
   var GRAD = 19, PAID = 21;
-  function totalCard(tot, pct) {
-    if (tot <= GRAD + 1e-9) return "<a class='kpi hero' href='#calendar'>" + ring(pct, "#fff", Math.round(pct) + "%", "rgba(255,255,255,.22)") + "<div><small>Total planned</small><b>" + fmt(tot) + " / 19</b><small>"
-      + (tot >= GRAD - 1e-9 ? "all 19 CU planned" : fmt(GRAD - tot) + " CU to go") + "</small></div></a>";
+  function totalCard(tot, pct, mini) {   // mini = the compact copy at the top of the Electives page (approved mockup, Oct 28)
+    var cls = "kpi hero" + (mini ? " mini" : "");
+    if (tot <= GRAD + 1e-9) return "<a class='" + cls + "' href='#calendar'>" + ring(pct, "#fff", Math.round(pct) + "%", "rgba(255,255,255,.22)") + "<div><small>Total planned</small><b>" + fmt(tot) + " / 19</b><small>"
+      + (tot >= GRAD - 1e-9 ? "all 19 CU planned" : fmt(GRAD - tot) + " CU to go" + (mini ? " · about " + Math.ceil(GRAD - tot - 1e-9) + " class" + (Math.ceil(GRAD - tot - 1e-9) > 1 ? "es" : "") : "")) + "</small></div></a>";
     var over = tot > PAID + 1e-9, extra = Math.min(100, 100 * (tot - GRAD) / (PAID - GRAD));
     var outer = over ? "conic-gradient(var(--red) 0 100%,transparent 0)" : "conic-gradient(#2dd4bf 0 " + extra + "%,rgba(255,255,255,.18) 0)";
-    return "<a class='kpi hero" + (over ? " capbad" : "") + "' href='#calendar'><div class='ring2'><div class='outer' style='background:" + outer + "'></div><div class='dn inner' style='background:#fff'><i style='background:var(--acc)'>" + Math.round(pct) + "%</i></div></div>"
+    return "<a class='" + cls + (over ? " capbad" : "") + "' href='#calendar'><div class='ring2'><div class='outer' style='background:" + outer + "'></div><div class='dn inner' style='background:#fff'><i style='background:var(--acc)'>" + Math.round(pct) + "%</i></div></div>"
       + "<div><small>Total planned</small><b>" + fmt(tot) + " / 19</b><small>" + (over ? "⚠ Over the 21 CU covered" : "+" + fmt(tot - GRAD) + " CU · up to 21 covered") + "</small>"
       + (over ? "<span class='captag bad'>" + fmt(tot - PAID) + " CU you'd pay for</span>" : "<span class='captag ok'>" + (tot >= PAID - 1e-9 ? "At the 21 CU limit" : "Room for " + fmt(PAID - tot) + " CU more") + "</span>") + "</div></a>";
   }
@@ -1258,7 +1265,8 @@
   function offTxt(c) { var o = offered(c); return o ? o.join(", ") : ""; }
   function countsTxt(c) {   // what the calendar chip's tags say this class counts toward
     var a = assignment(), e = S.plan[c] || {}, out = [];
-    if (FIXED_CORE[c]) out.push("Core"); else if (coreSubs()[c]) out.push("Core (" + coreSubs()[c] + ")"); else if (FLEX_AREA[c] && !usedForMajor(c)) out.push("Flex core (" + FLEX_AREA[c] + ")");
+    var subA = coreSubs()[c], subFixed = subA && D.core.some(function (s) { return /fixed/i.test(s.section) && s.areas.some(function (x) { return x.name === subA; }); });
+    if (FIXED_CORE[c]) out.push("Core"); else if (subA) out.push((subFixed ? "Core (" : "Flex core (") + subA + ", " + (((D.groupRules[subA] || {}).placement) ? "placement" : "substitute") + ")"); else if (FLEX_AREA[c] && !usedForMajor(c)) out.push("Flex core (" + FLEX_AREA[c] + ")");
     if (e.own) return "Added by you";
     majorsFor(c).forEach(function (m) { if (!a.set[c] || a.set[c].indexOf(m) >= 0) out.push(m); });
     return out.length ? out.join(", ") : "Elective";
@@ -1364,7 +1372,8 @@
       rows.push([], H(["Code", "Title", "CU", "Decision", "Fit", "Semester", "Status", "Counts toward this major", "Also counts toward", "Usually offered", "Description"]));
       var a2 = assignment();
       byDecision(Object.keys(BY).filter(function (c) { return eligible(c, m); })).forEach(function (c) {
-        var k = BY[c], on = !!S.plan[c], cnt = on ? (a2.set[c] ? (a2.set[c].indexOf(n) >= 0 ? "Yes" : "No — counts toward " + a2.set[c].join(" + ")) : "Yes") : "";
+        var k = BY[c], on = !!S.plan[c], cnt = !on ? "" : flexBlocked(c, n) ? "No — filling your OIDD flex core"
+          : a2.set[c] && a2.set[c].indexOf(n) < 0 ? "No — counts toward " + (a2.set[c].join(" + ") || "another requirement") : "Yes";
         rows.push([c, k.title, k.cu, decOf(c), LABEL[c] || "", semOf(c), stOf(c), cnt, majorsFor(c).filter(function (x) { return x !== n; }).join(", "), offTxt(c), k.summary || ""]); });
       sheets.push({ name: nm, widths: [44, 44, 11, 18, 22, 16, 12, 26, 30, 14, 70], wrap: [0, 4, 10], rows: rows });
     });
@@ -1415,11 +1424,40 @@
   }
   window.__wcp = { offered: offered, S: S, addToPlan: addToPlan, removeFromPlan: removeFromPlan, schedule: schedule, resuggest: resuggest,
                    render: render, LABEL: LABEL, SCORE: SCORE, coreState: coreState, majorState: majorState,
-                   cuOf: cuOf, flexUsed: flexUsed, isSummer: isSummer, dropInapplicable: dropInapplicable, usedForMajor: usedForMajor, countsAsCore: countsAsCore, inElectives: inElectives, assignment: assignment, dblUsed: dblUsed, explored: explored, TERMS: TERMS, CORE_CODES: CORE_CODES, HEAVY: HEAVY, ui: ui, A: A, started: started };   // for tests
+                   cuOf: cuOf, flexUsed: flexUsed, isSummer: isSummer, dropInapplicable: dropInapplicable, usedForMajor: usedForMajor, countsAsCore: countsAsCore, inElectives: inElectives, assignment: assignment, dblUsed: dblUsed, explored: explored, TERMS: TERMS, CORE_CODES: CORE_CODES, HEAVY: HEAVY, ui: ui, A: A, started: started, fresh: fresh };   // for tests
   dropInapplicable(null);   // tidy plans saved before this rule
   placeNew();   // also moves saved fixed-core classes to their first-year terms
   // After "Update survey": keep every pick, term, lock and status; only the answers-driven parts recalibrate
   // (recommendations and majors are recomputed from the answers on load; recruiting terms follow the new answers)
   if (S.rescore) { delete S.rescore; S.recruitTerms = recruitFromSurvey(); save(); }
   commit();
+  // "Update available" note (approved mockup: design/mockup-update-banner.html, Oct 28). The publish step stamps a
+  // version into this page and into version.txt; an open board re-reads version.txt every 5 minutes and whenever the
+  // tab comes back into view. Only reads one file from this site — nothing is sent. Board only: a refresh mid-survey
+  // could lose answers.
+  (function () {
+    var mine = ($("meta[name=wcp-version]") || {}).content, last = 0, shown = false;
+    if (!mine || mine === "dev" || !window.fetch) return;
+    function check() {
+      if (shown || Date.now() - last < 60000) return;
+      last = Date.now();
+      fetch("version.txt?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (v) {
+        v = (v || "").trim();
+        var skip; try { skip = sessionStorage.getItem("wcp.updSkip"); } catch (e) {}
+        if (v && v !== mine && v !== skip) show(v);
+      }).catch(function () {});
+    }
+    function show(v) {
+      shown = true;
+      var o = document.createElement("div"); o.className = "updnote";
+      o.innerHTML = "<div>A new version of the planner is ready<small>Your plan is saved and won't change</small></div><button class='go'>Refresh</button><button class='x' title='Not now' aria-label='Not now'>×</button>";
+      o.querySelector(".go").onclick = function () { location.reload(); };
+      o.querySelector(".x").onclick = function () { try { sessionStorage.setItem("wcp.updSkip", v); } catch (e) {} o.remove(); shown = false; };   // hidden until the next update
+      document.body.appendChild(o);
+    }
+    setTimeout(check, 3000);
+    setInterval(check, 5 * 60000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
+    window.__wcpCheckUpdate = function () { last = 0; check(); };   // lets the tests trigger a check
+  })();
 })();

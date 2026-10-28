@@ -111,6 +111,64 @@ test("Export to Excel: downloads a valid workbook whose numbers match the dashbo
   expect(tab("README").some(r => r[1] && r[1].startsWith("https://"))).toBe(true);
 });
 
+test("update note: hidden while current, shows when a newer version is published, × hides it, Refresh keeps the plan", async ({ page }) => {
+  let live = null;   // null = serve the real version.txt (same as the page)
+  await page.route(/version\.txt/, r => live ? r.fulfill({ body: live + "\n" }) : r.continue());
+  await board(page, P("x-five-majors"), "#calendar");
+  await page.locator("[data-addplan]").first().click();
+  await page.waitForTimeout(3500);                                  // the first automatic check
+  await expect(page.locator(".updnote")).toHaveCount(0);            // same version → nothing
+  live = "newer1";
+  await page.evaluate(() => window.__wcpCheckUpdate());
+  await expect(page.locator(".updnote")).toContainText("A new version of the planner is ready");
+  await page.click(".updnote .x");
+  await expect(page.locator(".updnote")).toHaveCount(0);
+  await page.evaluate(() => window.__wcpCheckUpdate());
+  await page.waitForTimeout(500);
+  await expect(page.locator(".updnote")).toHaveCount(0);            // dismissed until the next update
+  live = "newer2";
+  await page.evaluate(() => window.__wcpCheckUpdate());
+  await expect(page.locator(".updnote")).toBeVisible();
+  const chips = await page.locator(".cal .chip.k").count();
+  await Promise.all([page.waitForEvent("load"), page.click(".updnote .go")]);
+  await expect(page.locator(".cal .chip.k")).toHaveCount(chips);    // plan survives the refresh
+});
+
+test("a class filling the OIDD flex core isn't tagged or exported as counting toward E&I / AI", async ({ page }, info) => {
+  await page.setViewportSize({ width: 1400, height: 2400 });
+  const survey = Object.assign({}, P("x-five-majors"), { class: "Class of 2028", majors: ["Artificial Intelligence for Business", "Entrepreneurship & Innovation", "Finance"] });
+  await page.goto("/index.html");
+  await page.evaluate(a => {
+    localStorage.clear(); localStorage.setItem("wcp.answers", JSON.stringify(a));
+    localStorage.setItem("wcp.state", JSON.stringify({ plan: { "OIDD 6120": { term: "Fall '26", slot: "Q2", locked: true }, "OIDD 6620": { term: "Fall '27", slot: "Q2", locked: true } },
+      dec: {}, core: { "Operations, Information & Decisions": "take" }, changes: 0, ownN: 0 }));
+  }, survey);
+  await page.goto("/board.html#calendar");
+  const tags = await page.locator(".cal [data-chip='OIDD 6620'] .kbot").innerText();
+  expect(tags).not.toMatch(/E&I|AI for Business/);
+  const sheets = await page.evaluate(() => window.__wcpExport());
+  const cell = r => r.map(x => x && typeof x === "object" ? x.v : x);
+  const ei = sheets.find(s => s.name === "Major - E&I").rows.map(cell).find(r => r[0] === "OIDD 6620");
+  expect(ei[7]).toBe("No — filling your OIDD flex core");
+  const sched = sheets.find(s => s.name === "Schedule").rows.map(cell).find(r => r[2] === "OIDD 6620");
+  expect(sched[7]).toBe("Flex core (Operations, Information & Decisions)");
+  const summ = sheets.find(s => s.name === "Summary").rows.map(cell).map(r => r.join(" ")).join("\n");
+  expect(summ).not.toContain("OIDD 6620");
+});
+
+test("Electives page shows the Total card: same total as the Overview, CU and classes to go", async ({ page }) => {
+  await board(page, P("x-five-majors"), "#calendar");
+  for (let i = 0; i < 3; i++) await page.locator("[data-addplan]").first().click();
+  await view(page, "overview");
+  const total = await page.locator(".kpi.hero b").innerText();
+  await view(page, "electives");
+  await expect(page.locator(".ehead .kpi.mini b")).toHaveText(total);
+  const left = 19 - parseFloat(total);
+  await expect(page.locator(".ehead .kpi.mini")).toContainText(`CU to go · about ${Math.ceil(left)} class`);
+  await page.locator(".board .col:nth-child(2) .card [data-decide='yes']").first().click();               // ✓ a class → the card updates
+  await expect(page.locator(".ehead .kpi.mini b")).not.toHaveText(total);
+});
+
 test("add a major from the Majors page", async ({ page }) => {
   await board(page, P("x-no-majors"), "#majors");
   await expect(page.locator(".cg[data-major]")).toHaveCount(0);

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="wcp-version" content="627746a7814e">
 <title>Your two years at Wharton</title>
 
 <style>
@@ -162,6 +162,9 @@ footer{padding:0 30px 40px}
 .captag{display:inline-block;margin-top:6px;font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 9px;background:#fff}
 .captag.ok{color:#0f766e}.captag.bad{color:var(--red)}
 .kpi.hero.capbad{box-shadow:0 0 0 3px var(--red)}
+.ehead{display:flex;gap:18px;align-items:center;justify-content:space-between;margin-bottom:14px}.ehead .et{min-width:0}.ehead .sub{margin:0}
+.kpi.mini{flex:none;padding:14px 18px}.kpi.mini .dn{width:64px;height:64px}.kpi.mini .dn i{width:46px;height:46px;font-size:12px}.kpi.mini b{font-size:24px}
+@media(max-width:760px){.ehead{flex-direction:column;align-items:stretch}.kpi.mini{width:100%}}
 .capwarn2{background:color-mix(in srgb,var(--red) 10%,var(--card));border:1.5px solid var(--red);color:var(--red);font-weight:700;border-radius:12px;padding:8px 12px;margin:0 0 12px}
 .how{display:flex;gap:10px;align-items:stretch;background:linear-gradient(90deg,#14b8a6,#0ea5e9);border-radius:16px;padding:14px 16px;margin:0 0 16px;flex-wrap:wrap;box-shadow:0 6px 18px rgba(14,165,233,.25)}
 :root[data-theme=dark] .how{background:linear-gradient(90deg,#0f766e,#0369a1)}
@@ -255,13 +258,18 @@ footer{padding:0 30px 40px}
 .tp.add{border:1.5px solid var(--rule);color:var(--ink2);background:var(--card);cursor:pointer}.tp.add:hover{border-color:var(--acc);color:var(--acc)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:14px;padding:11px 16px;font-weight:700;display:flex;gap:10px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:90;transition:opacity .35s}
 .toast a{color:var(--bg);text-decoration:underline;font-weight:900}.toast.bye{opacity:0}
+.updnote{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:14px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;font-weight:700;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:89;white-space:nowrap}
+.updnote small{display:block;font-weight:500;opacity:.75;font-size:12px}
+.updnote button{font:inherit;font-weight:800;border:0;border-radius:999px;padding:7px 14px;background:var(--acc);color:var(--onacc);cursor:pointer}
+.updnote .x{background:none;color:var(--bg);opacity:.7;padding:4px 6px}
+@media(max-width:760px){.updnote{bottom:90px;white-space:normal;width:calc(100% - 24px)}}
 @media(max-width:1100px){.cal3{grid-template-columns:1fr}.ocal{grid-template-columns:1fr 1fr!important}}
 @media(max-width:760px){
  .ocal{grid-template-columns:1fr!important}.oterm{min-height:0}.kpi.dblk small{white-space:normal}
  .r3{grid-template-columns:1fr;gap:6px}.r3 .tn{flex-direction:row;gap:10px;align-items:baseline;flex-wrap:wrap}
  .qrow{grid-template-columns:1fr}.qrow .band+.band{border-left:0;border-top:1px solid var(--rule)}
  .chip.k{width:100%}.how .st3{min-width:100%}.how .ar{display:none}
- .toast{bottom:90px;max-width:92vw;white-space:normal}
+ .toast{bottom:90px;max-width:92vw;white-space:normal;display:block;text-align:center}
  .dbl{margin-left:0;flex-basis:100%}.resugbtn{margin-left:0}.legendbox .nt{margin-left:0}
 }
 
