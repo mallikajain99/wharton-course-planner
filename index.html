@@ -76,9 +76,14 @@ button:focus:not(:focus-visible){outline:none}
 .how li b{display:block;font-size:16px}.how li span{color:var(--muted);font-size:14px}
 .intro .privacy{color:var(--muted);font-size:12.5px}
 .grid .mo{display:none}
+/* theme switch — same setting as the board (wcp.theme) */
+.themesw{position:fixed;top:14px;right:16px;z-index:30;display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
+.themesw button{border:0;border-radius:0;padding:6px 11px;font-size:12px;font-weight:700;color:var(--muted);background:transparent}
+.themesw button.on{background:var(--acc);color:var(--onacc)}
 @media (max-width:760px){
  .part.on{display:block}
- .panel{position:static;height:auto;padding:26px 20px 22px}
+ .panel{position:static;height:auto;padding:56px 20px 22px}
+ .intro{padding-top:56px}
  .panel h1{font-size:26px;margin:10px 0 8px}
  .panel .grow{display:none}.prog{margin-top:16px}
  .body{padding:20px 16px 120px}
@@ -97,6 +102,7 @@ button:focus:not(:focus-visible){outline:none}
  .grid td[data-l] label:has(input:checked){background:var(--acc);color:var(--onacc);box-shadow:none}
 }</style><script>try{var th=localStorage.getItem("wcp.theme");if(th)document.documentElement.dataset.theme=th;}catch(e){}</script><script data-goatcounter="https://mallikajain.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head><body>
+<div class="themesw" aria-label="Color theme"><button data-theme-set="auto" title="Follow my system">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div>
 <div id="parts"></div>
 <div id="review" class="part"></div>
 <div id="donep" class="part"></div>
@@ -175,6 +181,14 @@ document.addEventListener("change",function(e){
  var on=!!q.querySelector("input[value='__other']:checked");
  oth.classList.toggle("on",on); if(on&&e.target.value==="__other") oth.querySelector("input").focus();
 });
+function themeMark(){ var t=localStorage.getItem("wcp.theme")||"auto"; [].forEach.call(document.querySelectorAll("[data-theme-set]"),function(b){ b.classList.toggle("on",b.dataset.themeSet===t); }); }
+document.addEventListener("click",function(e){
+ var tb=e.target.closest&&e.target.closest("[data-theme-set]"); if(!tb) return;
+ try{ if(tb.dataset.themeSet==="auto"){ localStorage.removeItem("wcp.theme"); delete document.documentElement.dataset.theme; }
+  else { localStorage.setItem("wcp.theme",tb.dataset.themeSet); document.documentElement.dataset.theme=tb.dataset.themeSet; } }catch(err){}
+ themeMark();
+});
+try{ themeMark(); }catch(e){}
 document.addEventListener("click",function(e){
  var a=e.target.closest&&e.target.closest("[data-fb]"); if(!a) return;
  var f=a.parentNode; f.classList.toggle("on"); if(f.classList.contains("on")) f.querySelector("textarea").focus();

@@ -635,3 +635,20 @@ test("dragging a class moves it without locking it; a moved first-year class sta
   await page.reload();
   expect(await page.evaluate(c => window.__wcp.S.plan[c].term, code)).toBe("Spring '27");
 });
+
+test("survey has the light/dark switch and the choice carries to the board", async ({ page }) => {
+  await page.goto("/index.html"); await page.evaluate(() => localStorage.clear()); await page.reload();
+  await page.click(".themesw [data-theme-set='dark']");
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+  await expect(page.locator(".themesw [data-theme-set='dark']")).toHaveClass(/on/);
+  await page.click("#next");
+  await expect(page.locator(".themesw")).toBeVisible();
+  await page.reload();
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+  await page.evaluate(a => localStorage.setItem("wcp.answers", JSON.stringify(a)), P("q01-01"));
+  await page.goto("/board.html");
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("dark");
+  await page.goto("/index.html");
+  await page.click(".themesw [data-theme-set='auto']");
+  expect(await page.evaluate(() => document.documentElement.dataset.theme || "")).toBe("");
+});
