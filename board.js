@@ -921,7 +921,7 @@
     var cpct = cNeed ? 100 * cHave / cNeed : 0;
     h += "<div class='kpis'>"
       + totalCard(tot, pct)
-      + "<a class='kpi' href='#core'>" + ring(cpct, "var(--teal)", Math.round(cpct) + "%") + "<div><small>Core</small><b>" + fmt(cHave) + " / " + fmt(cNeed) + "</b><small>"
+      + "<a class='kpi' href='#core'>" + ring(cpct, "var(--teal)", Math.round(cpct) + "%") + "<div><small>Core & flex</small><b>" + fmt(cHave) + " / " + fmt(cNeed) + "</b><small>"
         + core.filter(function (r) { return r.open.length; }).length + " still open</small></div></a>";
     if (ms.rows.length > 1) { var du = dblUsed();
       h += "<a class='kpi dblk" + (du > D.doubleCap + 1e-9 ? " over" : "") + "' href='#majors'>" + ring(50 * du, du > D.doubleCap + 1e-9 ? "var(--red)" : "var(--orange)", fmt(du)) + "<div><small>Double-counted</small><b>" + fmt(du) + " / 2.0</b><small>"
@@ -950,7 +950,7 @@
       else h += "<div class='lane'><div class='lh'>Full semester</div>" + lane(["Full"]) + "</div><div class='qq'><div class='lane'><div class='lh'>Q1</div>" + lane(["Q1"]) + "</div><div class='lane'><div class='lh'>Q2</div>" + lane(["Q2"]) + "</div></div>";
       h += "</div>";
     });
-    h += "</div><div class='legend'><span><i class='c-core'></i>Core</span><span><i class='c-maj'></i>Major</span><span><i class='c-el'></i>Elective</span><span>✓ taken · ◐ in progress</span></div></div>";
+    h += "</div><div class='legend'><span><i class='c-core'></i>Core & flex</span><span><i class='c-maj'></i>Major</span><span><i class='c-el'></i>Elective</span><span>✓ taken · ◐ in progress</span></div></div>";
     return h + whatsLeft();
   }
   // "What's left" (approved mockup): the biggest gaps, most important first, each linking to where it gets fixed
