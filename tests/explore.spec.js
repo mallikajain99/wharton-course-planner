@@ -41,19 +41,18 @@ async function checkAll(page, errors, ctx) {
       chips.forEach(c => { if (!plan[c]) out.push("calendar shows " + c + " which isn't in the plan"); });
       document.querySelectorAll("[data-status]").forEach(b => { const st = plan[b.dataset.status].status || "";
         if (!b.classList.contains(st || "none")) out.push("status button for " + b.dataset.status + " doesn't match its state " + st); });
-      document.querySelectorAll(".cal tr").forEach(tr => {
-        const cells = [...tr.querySelectorAll("td.slot")]; if (!cells.length) return;
-        const sum = cells.flatMap(td => [...td.querySelectorAll("[data-chip]")]).reduce((s, e) => s + P.cuOf(e.dataset.chip), 0);
-        const shown = parseFloat(tr.querySelector("td.tcu").textContent);
+      document.querySelectorAll(".cal .r3").forEach(row => {
+        const sum = [...row.querySelectorAll("[data-chip]")].reduce((s, e) => s + P.cuOf(e.dataset.chip), 0);
+        const shown = parseFloat(row.querySelector(".tcu").textContent);
         if (Math.abs(sum - shown) > 0.01) out.push("term CU shows " + shown + " but its classes add to " + sum);
-        if (sum > P.HEAVY && !tr.querySelector(".flag")) out.push("term above " + P.HEAVY + " CU without the heavy warning");
+        if (sum > P.HEAVY && !row.querySelector(".flag")) out.push("term above " + P.HEAVY + " CU without the heavy warning");
       });
     }
     if (view === "overview") {
       const hero = document.querySelector(".kpi.hero b");
       if (!hero || Math.abs(parseFloat(hero.textContent) - total) > 0.01) out.push("Overview total " + (hero && hero.textContent) + " ≠ plan " + total);
       document.querySelectorAll(".card.mini").forEach(c => { const k = c.dataset.code; if (plan[k] || P.S.dec[k] === "no") out.push("top pick " + k + " is already decided"); });
-      const tl = [...document.querySelectorAll(".tl .cuv")].reduce((s, e) => s + parseFloat(e.textContent), 0);
+      const tl = [...document.querySelectorAll(".ocal .ocu")].reduce((s, e) => s + parseFloat(e.textContent), 0);
       const placed = keys.filter(k => plan[k].term).reduce((s, k) => s + P.cuOf(k), 0);
       if (Math.abs(tl - placed) > 0.01) out.push("Overview timeline adds to " + tl + " but placed classes add to " + placed);
     }
@@ -83,7 +82,7 @@ async function act(page, rand, isMobile, log) {
   const view = await page.evaluate(() => (location.hash || "#overview").slice(1));
   const choices = ["nav", "nav", "nav", "back", "reload", "theme"];
   const per = { core: ["status", "status", "tick", "tick", "tick"], majors: ["addmajor", "dropmajor", "explore", "tick", "tick", "showall", "countfor", "countfor"],
-                electives: ["decide", "decide", "decide", "decide", "filter", "search", "own"], calendar: ["lock", "resuggest", "rec", "drag", "status", "status"] };
+                electives: ["decide", "decide", "decide", "decide", "filter", "search", "own"], calendar: ["lock", "resuggest", "rec", "drag", "status", "status", "show"] };
   const a = pickOne(choices.concat(per[view] || [], per[view] || []));
   const click = async (loc, what) => { if (await loc.count()) { log.push(view + ": " + what); await loc.click(); return true; } return false; };
   switch (a) {
@@ -112,10 +111,12 @@ async function act(page, rand, isMobile, log) {
     case "own": log.push("add own class"); await page.fill("#own-title", "Law School Seminar " + Math.floor(rand() * 100)); await page.press("#own-title", "Enter"); break;
     case "lock": { const l = page.locator(".cal [data-lock], .tray [data-lock]"); const n = await l.count(); if (n) await click(l.nth(Math.floor(rand() * n)), "lock/unlock"); break; }
     case "status": { const l = page.locator(".cal [data-status], .tray [data-status]"); const n = await l.count(); if (n) await click(l.nth(Math.floor(rand() * n)), "change taken/in-progress status"); break; }
+    case "show": { const l = page.locator("[data-show]"); const n = await l.count(); if (n) await click(l.nth(Math.floor(rand() * n)), "Show filter"); break; }
     case "resuggest": await click(page.locator("[data-resuggest]"), "re-suggest"); break;
     case "rec": { const l = page.locator("label:has(input[data-rec])"); const n = await l.count(); if (n) await click(l.nth(Math.floor(rand() * n)), "toggle recruiting term"); break; }
-    case "drag": if (!isMobile) { const c = page.locator(".cal .chip[draggable='true']"); const s = page.locator(".cal td.slot, .tray");
-      const n = await c.count(), m = await s.count(); if (n && m) { log.push("drag a class"); await c.nth(Math.floor(rand() * n)).dragTo(s.nth(Math.floor(rand() * m)));
+    case "drag": if (!isMobile) { const c = page.locator(".cal .chip[draggable='true']"); const s = page.locator(".cal .slot, .tray");
+      const n = await c.count(), m = await s.count(); if (n && m) { log.push("drag a class"); const vp = page.viewportSize(); await page.setViewportSize({ width: vp.width, height: 2600 });
+        await c.nth(Math.floor(rand() * n)).dragTo(s.nth(Math.floor(rand() * m))); await page.setViewportSize(vp);
         const pop = page.locator(".pop button"); if (await pop.count()) { log.push("(pop-up: can't place — closed)"); await pop.first().click(); } } } break;
   }
 }

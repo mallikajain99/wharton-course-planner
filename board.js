@@ -32,8 +32,12 @@
     return [];
   }
   function save() { try { localStorage.setItem("wcp.state", JSON.stringify(S)); } catch (e) {} }
-  var theme = localStorage.getItem("wcp.theme");
-  if (theme) document.documentElement.dataset.theme = theme;
+  // Light by default; Dark or Auto (follow the device) only when the student picks them
+  var theme = localStorage.getItem("wcp.theme") || "light";
+  if (theme !== "auto") document.documentElement.dataset.theme = theme;
+  function markTheme() { try { var t = localStorage.getItem("wcp.theme") || "light";
+    [].forEach.call(document.querySelectorAll("[data-theme-set]"), function (b) { b.classList.toggle("on", b.dataset.themeSet === t); }); } catch (e) {} }
+  markTheme();
 
   // ---------- courses ----------
   var BY = {}, ALSO = {};
@@ -252,7 +256,7 @@
   function resuggest() { savePlaced(schedule(true)); fixPrereqs(); S.changes = 0; }
   function slotOk(code, slot) {
     var cu = cuOf(code);
-    if (!slot) return true;
+    if (!slot || slot === "Summer") return true;   // Summer has no quarters — one box
     if (slot === "Full") return cu >= 1 || !!FULLHALF[code];
     return cu < 1 && !FULLHALF[code];
   }
@@ -478,7 +482,7 @@
   }
 
   // ---------- render ----------
-  var ui = { filter: "all", q: "", noOpen: true, maybeMore: 60, showAll: {} };   // No column open by default
+  var ui = { filter: "all", q: "", noOpen: true, maybeMore: 60, showAll: {}, show: "all", leftAll: false };   // No column open by default
   function bar(t, p, need) {
     var tw = need ? Math.min(100, 100 * t / need) : 0, pw = need ? Math.min(100 - tw, 100 * p / need) : 0;
     return "<div class='sbar'><span class='st' style='width:" + tw + "%'></span><span class='sp' style='width:" + pw + "%'></span></div>";
@@ -745,13 +749,9 @@
     };
     var yes = all.filter(function (c) { return S.plan[c]; }), no = all.filter(function (c) { return !S.plan[c] && S.dec[c] === "no"; });
     var maybe = all.filter(function (c) { return !S.plan[c] && S.dec[c] !== "no"; }).sort(function (a, b) { return (SCORE[b] || -99) - (SCORE[a] || -99); });
-    var nRec = all.filter(function (c) { return LABEL[c]; }).length;
-    var h = "<h2>Major & elective courses</h2><p class='sub'><b>This is the complete list of every Wharton class outside core and flex core</b> — "
-      + (explored.length ? "use the buttons below to narrow it: one per major you're exploring, or <b>All other Wharton electives</b> for every class that doesn't count toward your core, flex core or majors. " : "")
-      + "Classes that count toward a major are tagged with its name. "
+    var h = "<h2>Electives</h2><p class='sub'><b>Every Wharton class outside core — including the ones that count toward your majors.</b> "   // renamed from "Major & elective courses"
       + (Object.keys(subs).length ? "Classes you're using as a core substitute are counted under Core instead. " : "")
-      + "Everything starts in <b>Maybe</b>, sorted by how well it matches your answers. "
-      + nRec + " classes are labeled <b>Best fit</b> or <b>Good fit</b>; the rest are unlabeled, not ruled out. ✓ adds a class to your plan and calendar, ✕ moves it to No.</p>";
+      + "Best matches first · ✓ adds to your plan · ✕ rules it out.</p>";
     h += "<div class='chips'>" + [["all", "All"]].concat(explored.map(function (m) { return [m, MAJ_SHORT[m]]; })).concat(explored.length ? [["none", "All other Wharton electives"]] : []).map(function (f) {
       return "<button class='chip" + (ui.filter === f[0] ? " on" : "") + "' data-filter='" + esc(f[0]) + "'>" + esc(f[1]) + "</button>";
     }).join("") + "<input id='q' class='search' placeholder='Search classes' value='" + esc(ui.q) + "'></div>";
@@ -777,53 +777,110 @@
   // Lock icons — closed + filled vs. open shackle + outline
   var LOCK_ON = "<svg class='ico' viewBox='0 0 24 24'><rect x='5' y='11' width='14' height='10' rx='2' fill='currentColor'/><path d='M8 11V7a4 4 0 0 1 8 0v4' fill='none' stroke='currentColor' stroke-width='2.2'/></svg>";
   var LOCK_OFF = "<svg class='ico' viewBox='0 0 24 24'><rect x='5' y='11' width='14' height='10' rx='2' fill='none' stroke='currentColor' stroke-width='2'/><path d='M8 11V7a4 4 0 0 1 7.6-1.8' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round'/></svg>";
+  // ---------- Calendar page (approved mockup, Oct 28): semesters as rows — Full semester on top, Q1 | Q2 underneath,
+  // Summer is one box; "Needs a semester" on the right; Show filters (fade the rest) + Re-suggest above; majors underneath.
+  var HOW = function (last) {
+    return "<div class='how'><b class='ht'>How it works</b><div class='st3'><i>1</i><span>Pick classes in <b>Core</b>, <b>Majors</b> and <b>Electives</b></span></div><span class='ar'>→</span>"
+      + "<div class='st3'><i>2</i><span>They appear on your <b>calendar</b></span></div><span class='ar'>→</span>"
+      + "<div class='st3'><i>3</i><span><b>Drag</b> to rearrange · <b>lock</b> what's final</span></div></div>";
+  };
+  function isSummer(t) { return /^Summer/.test(t || ""); }
+  function catOf(c) { var e = S.plan[c]; if (countsAsCore(c)) return "core"; if (e && !e.own && majorsFor(c).length) return "maj"; return "el"; }
+  function showMatch(c) {   // the Show filter: All · Core & flex · one major
+    var f = ui.show || "all"; if (f === "all") return true;
+    if (f === "core") return countsAsCore(c);
+    var a = assignment(); return a.set[c] ? a.set[c].indexOf(f) >= 0 : majorsFor(c).indexOf(f) >= 0;
+  }
+  function showCU(f) { return entries().filter(function (e) { var o = ui.show; ui.show = f; var m = showMatch(e.code); ui.show = o; return m; }).reduce(function (t, e) { return t + cuOf(e.code); }, 0); }
   function calendarView() {
-    var heavy = S.recruitTerms || [];
-    var h = "<h2>Calendar</h2><p class='sub'>Suggested placements fill each semester to about 4.5 CU, schedule core first, keep recruiting terms lighter "
-      + "and spread quant-heavy courses. Drag to try a class elsewhere — that doesn't lock it; click <span class='lkdemo off'>" + LOCK_OFF + "</span> to lock a class in when you're sure.</p>"
-      + "<div class='startbanner'><b>Heads up:</b> this planner doesn't know which semester most classes actually run, so a suggested term may not match when a class is offered. The exception is Health Care Management classes, which follow the HCM department's published schedule. Check the course schedule in Course Match before you register.</div>";
-    h += "<div class='cst'><span class='cst-l'>Recruiting in:</span>" + TERMS.filter(function (t) { return !/^Summer/.test(t); }).map(function (t) {
+    var heavy = S.recruitTerms || [], es = entries();
+    var h = "<h2>Calendar</h2>";
+    h += "<div class='cst recrow'><span class='cst-l'>Recruiting in:</span>" + TERMS.filter(function (t) { return !isSummer(t); }).map(function (t) {
       return "<label><input type='checkbox' data-rec='" + esc(t) + "'" + (heavy.indexOf(t) >= 0 ? " checked" : "") + "> " + esc(t) + "</label>";
-    }).join("") + "</div>";
-    h += "<div class='resug'><button data-resuggest='1'>↻ Re-suggest</button> <span class='sub'>Re-places every unlocked <span class='lkdemo off'>" + LOCK_OFF + "</span> suggested class. <b><span class='lkdemo on'>" + LOCK_ON + "</span> Locked classes never move.</b></span>"
-      + (S.changes >= 3 ? " <span class='nudge'>You've added or removed " + S.changes + " classes since the last full suggestion — click Re-suggest for a fresh layout. Your <span class='lkdemo on'>" + LOCK_ON + "</span> locked classes won't move.</span>" : "") + "</div>";
-    h += "<div class='legendbox'><b>How to use the calendar</b>"
-      + "<div><span class='lk off'>" + LOCK_OFF + "</span> <b>Unlocked</b> — our suggestion; Re-suggest may move it. Click the icon to lock it.</div>"
-      + "<div><span class='lk on'>" + LOCK_ON + "</span> <b>Locked</b> — stays in this term. Click again to unlock.</div>"
-      + "<div><span class='stb none'>Not started</span> <span class='stb inprogress'>◐ In progress</span> <span class='stb taken'>✓ Taken</span> — click the button on the right of a class to change it. "
-      + "Taken and in-progress classes stay where they are and show as done in your progress bars. You set this yourself; the planner never guesses.</div>"
-      + "<div>Drag a class to another term or quarter to move it.</div></div>";
-    h += "<table class='cal'><tr><th>Term</th><th>Full semester</th><th>Q1</th><th>Q2</th><th class='cu'>CU</th></tr>";
-    var es = entries();
+    }).join("") + "<span class='recnote'>Keeping course load lighter when recruiting</span></div>";
+    h += HOW();
+    h += "<div class='legendbox'><span><span class='lk off'>" + LOCK_OFF + "</span> Suggested</span><span><span class='lk on'>" + LOCK_ON + "</span> Locked</span>"
+      + "<span><span class='stb none'>Not started</span> <span class='stb inprogress'>◐ In progress</span> <span class='stb taken'>✓ Taken</span> click to change</span>"
+      + "<span><span class='twice'>×2</span> counts twice</span><span class='nt'>Semesters are suggestions — confirm in Course Match</span></div>";
+    var opts = [["all", "All"], ["core", "Core & flex"]].concat(explored.filter(function (m) { return ALLM[m] && ALLM[m].total; }).map(function (m) { return [m, MAJ_SHORT[m]]; }));
+    h += "<div class='hl'><b>SHOW</b>" + opts.map(function (o) {
+        return "<button class='hlc" + ((ui.show || "all") === o[0] ? " on" : "") + "' data-show='" + esc(o[0]) + "'>" + (o[0] !== "all" ? "<i style='background:" + (o[0] === "core" ? "var(--teal)" : MAJ_COLOR[o[0]]) + "'></i>" : "") + esc(o[1]) + " <small>" + fmt(showCU(o[0])) + " CU</small></button>"; }).join("")
+      + (explored.length > 1 ? "<span class='dbl'>Double-counted <b>" + fmt(dblUsed()) + "</b> of 2.0 CU</span>" : "<span class='dbl'></span>")
+      + "<button class='resugbtn' data-resuggest='1'>↻ Re-suggest</button></div>"
+      + (S.changes >= 3 ? "<div class='nudge'>You've added or removed " + S.changes + " classes since the last full suggestion — Re-suggest for a fresh layout. Locked classes won't move.</div>" : "");
+    h += "<div class='cal3'><div class='cal rows3'>";
     TERMS.forEach(function (t) {
       var tcu = 0, nq = 0;
-      h += "<tr><td class='tn'>" + esc(t) + (heavy.indexOf(t) >= 0 ? "<div class='rec'>recruiting term</div>" : "") + "</td>";
-      ["Full", "Q1", "Q2"].forEach(function (s) {
-        var cell = es.filter(function (e) { return e.term === t && (e.slot || "Full") === s; });
-        cell.sort(function (a, b) { return (!!b.locked || started(b)) - (!!a.locked || started(a)); });
-        h += "<td class='slot' data-term=\"" + esc(t) + "\" data-slot='" + s + "'>" + cell.map(chip).join("") + "</td>";
-      });
       es.forEach(function (e) { if (e.term === t) { tcu += cuOf(e.code); nq += isQuant(e.code) ? 1 : 0; } });
-      h += "<td class='tcu'>" + fmt(tcu) + (tcu > HEAVY ? "<div class='flag'>⚠ heavy — more than a typical semester; move or drop classes</div>" : "") + (nq ? "<div class='" + (nq > QCAP ? "flag" : "qcount") + "'>∑ " + nq + " quant-heavy " + (nq === 1 ? "course" : "courses") + "</div>" : "") + "</td></tr>";
+      var lane = function (slots) {
+        var cell = es.filter(function (e) { return e.term === t && slots.indexOf(e.slot || "Full") >= 0; });
+        cell.sort(function (a, b) { return (!!b.locked || started(b)) - (!!a.locked || started(a)); });
+        return cell.map(chip).join("") || "<span class='empty3'>—</span>";
+      };
+      h += "<div class='r3' data-term-row=\"" + esc(t) + "\"><div class='tn'><b>" + esc(t) + "</b><small class='tcu'>" + fmt(tcu) + " CU</small>"
+        + (heavy.indexOf(t) >= 0 ? "<span class='rc'>recruiting</span>" : "")
+        + (tcu > HEAVY ? "<span class='flag'>⚠ heavy — move or drop classes</span>" : "")
+        + (nq ? "<span class='" + (nq > QCAP ? "flag" : "qcount") + "'>∑ " + nq + " quant-heavy</span>" : "") + "</div><div class='tbox'>";
+      if (isSummer(t)) h += "<div class='band slot' data-term=\"" + esc(t) + "\" data-slot='Summer'><div class='lh3'>PRE-TERM</div><div class='chips3'>" + lane(["Full", "Q1", "Q2", "Summer"]) + "</div></div>";
+      else h += "<div class='band slot' data-term=\"" + esc(t) + "\" data-slot='Full'><div class='lh3'>FULL SEMESTER</div><div class='chips3'>" + lane(["Full"]) + "</div></div>"
+        + "<div class='qrow'><div class='band slot' data-term=\"" + esc(t) + "\" data-slot='Q1'><div class='lh3'>Q1</div><div class='chips3'>" + lane(["Q1"]) + "</div></div>"
+        + "<div class='band slot' data-term=\"" + esc(t) + "\" data-slot='Q2'><div class='lh3'>Q2</div><div class='chips3'>" + lane(["Q2"]) + "</div></div></div>";
+      h += "</div></div>";
     });
-    h += "</table><div class='tray slot' data-term='' data-slot=''><b>Needs a term</b> " + (es.filter(function (e) { return !e.term; }).map(chip).join("") || "<span class='cu'>none</span>") + "</div>";
-    return h;
+    var un = es.filter(function (e) { return !e.term; });
+    h += "</div><div class='need tray slot' data-term='' data-slot=''><h4>Needs a semester <small>" + fmt(un.reduce(function (t, e) { return t + cuOf(e.code); }, 0)) + " CU</small></h4>"
+      + (un.length ? "<p>Drag onto the calendar</p>" + un.map(chip).join("") : "<p>None — everything has a semester</p>") + "</div></div>";
+    return h + calMajors();
   }
   var STATUS = { "": ["", "Not started", "Mark as in progress"], inprogress: ["◐", "In progress", "Mark as taken"], taken: ["✓", "Taken", "Mark as not started"] };
   function chip(e) {
-    var st = e.status || "", locked = !!e.locked;
-    var k = BY[e.code];
-    var cat = countsAsCore(e.code) ? "Core" : e.own ? "Added by you" : null;
-    var mj = e.own ? [] : majorsFor(e.code).filter(function (m) { return explored.indexOf(m) >= 0 || REQ_MAJ[e.code] === m; });
-    return "<div class='chip " + (st === "taken" ? "done" : st === "inprogress" ? "inprog" : locked ? "locked" : "sugg") + "' draggable='true' data-chip='" + esc(e.code) + "'" + (e.why ? " title=\"" + esc(e.why) + "\"" : "") + ">"
-      + "<div class='crow'><button class='lk " + (locked ? "on" : "off") + "' data-lock='" + esc(e.code) + "' title='" + (locked ? "Locked in this term — click to unlock" : "Suggested — click to lock it in this term") + "'>" + (locked ? LOCK_ON : LOCK_OFF) + "</button>"
-      + "<span class='ct2'>" + (e.missing ? "<span class='offwarn' title='Not in this year's course list'>⚠ check it's offered</span> " : "")
-      + (offTerm(e.code, e.term) ? "<span class='offwarn' title='The department lists this class in " + esc(offered(e.code)[0]) + "'>⚠ usually " + esc(offered(e.code)[0]) + "</span> " : "")
-      + "<b>" + esc(e.own ? (e.shown || "") : e.code) + "</b> " + esc(e.own || e.missing ? e.title : k ? k.title : "") + " <span class='cu'>" + fmt(cuOf(e.code)) + "</span>" + (isQuant(e.code) ? " <span class='qh'>∑</span>" : "") + "</span>"
+    var st = e.status || "", locked = !!e.locked, k = BY[e.code], cat = catOf(e.code);
+    var a = assignment(), twice = a.set[e.code] && a.set[e.code].length > 1;
+    var tags = (cat === "core" ? "<span class='tg'>Core</span>" : "")
+      + (e.own ? "<span class='tg'>Added by you</span>" : majorsFor(e.code).filter(function (m) { return !a.set[e.code] || a.set[e.code].indexOf(m) >= 0; })
+          .map(function (m) { return "<span class='tg' style='--c:" + MAJ_COLOR[m] + "'>" + esc(MAJ_SHORT[m]) + "</span>"; }).join(""))
+      + (cat === "el" && !e.own ? "<span class='tg'>Elective</span>" : "");
+    return "<div class='chip k " + (st === "taken" ? "done" : st === "inprogress" ? "inprog" : locked ? "locked" : "sugg") + (showMatch(e.code) ? "" : " dim") + "' draggable='true' data-chip='" + esc(e.code) + "'" + (e.why ? " title=\"" + esc(e.why) + "\"" : "") + ">"
+      + "<div class='ktop'><button class='lk " + (locked ? "on" : "off") + "' data-lock='" + esc(e.code) + "' title='" + (locked ? "Locked in this term — click to unlock" : "Suggested — click to lock it in this term") + "'>" + (locked ? LOCK_ON : LOCK_OFF) + "</button>"
+      + "<b>" + esc(e.own ? (e.shown || "Own") : e.code) + "</b><em class='cu'>" + fmt(cuOf(e.code)) + " CU</em>" + (twice ? "<span class='twice'>×2</span>" : "") + (isQuant(e.code) ? "<span class='qh'>∑</span>" : "")
       + "<button class='stb " + (st || "none") + "' data-status='" + esc(e.code) + "' title='" + STATUS[st][2] + "'>" + (STATUS[st][0] ? STATUS[st][0] + " " : "") + STATUS[st][1] + "</button></div>"
-      + "<div class='ctags'>" + (cat ? "<span class='tag mj' style='--c:#8a857c'><i></i>" + cat + "</span>" : "")
-      + (e.own ? "" : majorTags(e.code))
-      + (!cat && !mj.length ? "<span class='tag mj' style='--c:#b9b4aa'><i></i>Elective</span>" : "") + "</div></div>";
+      + "<div class='kbot'><span class='ttl'>" + esc(e.own || e.missing ? e.title : k ? k.title : "") + "</span>" + tags + "</div>"
+      + (e.missing ? "<span class='offwarn'>⚠ check it's offered</span>" : "")
+      + (offTerm(e.code, e.term) ? "<span class='offwarn' title='The department lists this class in " + esc(offered(e.code)[0]) + "'>⚠ usually " + esc(offered(e.code)[0]) + "</span>" : "")
+      + "</div>";
+  }
+  function termLabel(c) { var e = S.plan[c]; if (!e) return null; if (!e.term) return "Needs semester"; return e.term + (isSummer(e.term) ? "" : " · " + (e.slot === "Q1" || e.slot === "Q2" ? e.slot : "Full")); }
+  function pill(c) {
+    if (!S.plan[c]) return "<button class='tp add' data-addplan='" + esc(c) + "'>+ Add</button>";
+    var l = termLabel(c); return "<span class='tp " + (l === "Needs semester" ? "need" : "on") + "'>" + esc(l) + "</span>";
+  }
+  function calMajors() {   // majors underneath the calendar: each requirement with its semester (approved mockup)
+    var ms = explored.filter(function (n) { return ALLM[n] && ALLM[n].total; });
+    if (!ms.length) return "";
+    var h = "<h3 class='h3cal'>Majors in your calendar</h3><div class='majs'>";
+    ms.forEach(function (n) {
+      var m = ALLM[n], r = majorProgress(m), got = r.t + r.p, unsched = 0;
+      Object.keys(r.counted).forEach(function (c) { if (S.plan[c] && !S.plan[c].term) unsched += cuOf(c); });
+      var line = function (c, note) { var k = BY[c], mi = MISSING[c];
+        return "<div class='it'><span class='nm'><b>" + esc(c) + "</b> " + esc(k ? k.title : mi && mi.title ? mi.title : "") + (note ? "<small>" + esc(note) + "</small>" : "") + "</span>" + pill(c) + "</div>"; };
+      h += "<div class='mc'><h5><span class='dot' style='background:" + MAJ_COLOR[n] + "'></span>" + esc(n) + "<small>" + fmt(got) + " of " + fmt(m.total) + " CU</small></h5>"
+        + "<div class='bar3'><i style='width:" + Math.min(100, 100 * got / m.total) + "%;background:" + MAJ_COLOR[n] + "'></i></div>"
+        + "<small class='mcs'>" + (unsched ? fmt(unsched) + " CU not scheduled" : "All scheduled") + "</small>";
+      var req = reqOf(m);
+      if (req.length) h += "<div class='s3'><span>Required</span><span>" + fmt(req.filter(function (c) { return S.plan[c]; }).reduce(function (t, c) { return t + cuOf(c); }, 0)) + " of " + fmt(req.reduce(function (t, c) { return t + (BY[c] ? BY[c].cu : 1); }, 0)) + " CU</span></div>" + req.map(function (c) { return line(c); }).join("");
+      (m.checks || []).forEach(function (k) { if (!checkMet(k)) h += "<div class='it'><span class='nm warnline'>⚠ Also requires: " + esc(k.label) + "</span></div>"; });
+      r.groups.forEach(function (x) {
+        var g = x.g, goal = g.min ? fmt(x.have) + " of " + fmt(g.min) + " CU" + (x.have >= g.min ? " ✓" : "") : fmt(x.have) + " CU";
+        var label = /elective/i.test(g.label) ? g.label : g.label;
+        var sugg = Object.keys(BY).filter(function (c) { return inGroup(c, g) && !S.plan[c] && S.dec[c] !== "no" && !CORE_CODES[c] && req.indexOf(c) < 0; })
+          .sort(function (a, b) { return (SCORE[b] || -99) - (SCORE[a] || -99); }).slice(0, g.min && x.have >= g.min ? 0 : 2);
+        h += "<div class='s3'><span>" + esc(label) + "</span><span>" + goal + "</span></div>"
+          + x.picked.map(function (c) { return line(c, usedForMajor(c) ? "" : (flexUsed()[c] && noFlexMajors(c).indexOf(n) >= 0 ? "Used for OIDD flex core" : "")); }).join("")
+          + sugg.map(function (c) { return line(c, LABEL[c] || ""); }).join("");
+      });
+      h += "</div>";
+    });
+    return h + "</div>";
   }
   function sourcesView() {
     return "<section class='srcs'><h2>Sources</h2><p>Every class comes from the <a target='_blank' rel='noopener' href='" + esc(D.courseListUrl) + "'>Wharton MBA course list</a> (Excel export). "
@@ -846,9 +903,7 @@
     entries().forEach(function (e) { if (started(e)) tt += cuOf(e.code); else tp += cuOf(e.code); });
     var cHave = core.reduce(function (s, r) { return s + r.t + r.p; }, 0), cNeed = core.reduce(function (s, r) { return s + r.need; }, 0);
     var tot = tt + tp, pct = 100 * tot / 19;
-    var elect = entries().filter(function (e) { return !countsAsCore(e.code); });
-    var h = "<h2>Your two years at Wharton</h2><p class='sub'>" + esc(A["class"] || "") + (explored.length ? " · exploring " + esc(explored.map(function (m) { return MAJ_SHORT[m]; }).join(", ")) : "")
-      + ". Work through the steps in order — Core, Majors, Major & elective courses, then Calendar.</p>";
+    var h = "<h2>Your two years at Wharton</h2><p class='sub'>" + esc(A["class"] || "") + "</p>";   // majors list removed — the rings below show them
     //
     var cpct = cNeed ? 100 * cHave / cNeed : 0;
     h += "<div class='kpis'>"
@@ -859,7 +914,7 @@
     if (ms.rows.length > 1) { var du = dblUsed();
       h += "<a class='kpi dblk" + (du > D.doubleCap + 1e-9 ? " over" : "") + "' href='#majors'>" + ring(50 * du, du > D.doubleCap + 1e-9 ? "var(--red)" : "var(--orange)", fmt(du)) + "<div><small>Double-counted</small><b>" + fmt(du) + " / 2.0</b><small>"
         + (du > D.doubleCap + 1e-9 ? "over Wharton's limit" : couldDouble().length && du < D.doubleCap ? couldDouble().length + " more could count twice" : "of Wharton's limit") + "</small></div></a>"; }
-    h += "<a class='kpi num' href='#electives'><div><small>Major & elective courses</small><b>" + elect.length + "</b><small>picked</small></div></a></div>";
+    h += "</div>";   //
     h += "<div class='kpis majrow'>";
     ms.rows.forEach(function (r) {
       var p2 = r.need ? 100 * (r.t + r.p) / r.need : 0;
@@ -868,26 +923,51 @@
     });
     if (!ms.rows.length) h += "<a class='kpi' href='#majors'><div><small>Majors</small><b>None yet</b><small>add one any time</small></div></a>";
     h += "</div>";
-    // timeline: CU per term, split core / major / electives
-    var es = entries(), max = 6;
-    h += "<div class='ov'><div class='box'><h4>Your two years <a href='#calendar'>Open calendar →</a></h4><div class='tl'>";
+    h += HOW();
+    // compact, read-only calendar (approved mockup): Summer one box; others Full on top, Q1 | Q2 underneath
+    var es = entries(), ochip = function (e) {
+      var k = BY[e.code], st = e.status === "taken" ? "<span class='st'>✓</span>" : e.status === "inprogress" ? "<span class='st'>◐</span>" : "";
+      return "<div class='oc c-" + catOf(e.code) + "'><b>" + esc(e.own ? (e.shown || "Own") : e.code) + "</b><span>" + esc(e.own || e.missing ? e.title : k ? k.title : "") + "</span><em>" + fmt(cuOf(e.code)) + "</em>" + st + "</div>"; };
+    h += "<div class='mini'><div class='mh'><b>Your calendar</b><span class='sp'></span><a href='#calendar'>Edit →</a></div><div class='ocal' style='grid-template-columns:repeat(" + TERMS.length + ",minmax(0,1fr))'>";
     TERMS.forEach(function (t) {
-      var parts = { core: 0, maj: 0, el: 0 };
-      es.forEach(function (e) { if (e.term !== t) return; var cu = cuOf(e.code);
-        if (countsAsCore(e.code)) parts.core += cu; else if (!e.own && (REQ_MAJ[e.code] || majorsFor(e.code).length)) parts.maj += cu; else parts.el += cu; });
-      var sum = parts.core + parts.maj + parts.el;
-      h += "<span class='tn2'>" + esc(t) + ((S.recruitTerms || []).indexOf(t) >= 0 ? "<small>recruiting</small>" : "") + "</span><div class='track'>"
-        + [["core", "c-core", "Core"], ["maj", "c-maj", "Major"], ["el", "c-el", "Elect."]].map(function (x) {
-          return parts[x[0]] ? "<span class='" + x[1] + "' style='width:" + (100 * parts[x[0]] / max) + "%' title='" + x[2] + ": " + fmt(parts[x[0]]) + " CU'>" + fmt(parts[x[0]]) + "</span>" : ""; }).join("")
-        + "</div><span class='cuv" + (sum > HEAVY ? " hv" : "") + "'>" + fmt(sum) + " CU" + (sum > HEAVY ? " ⚠" : "") + "</span>";
+      var inT = es.filter(function (e) { return e.term === t; }), cu = inT.reduce(function (s2, e) { return s2 + cuOf(e.code); }, 0);
+      var lane = function (sl) { return inT.filter(function (e) { return sl.indexOf(e.slot || "Full") >= 0; }).map(ochip).join("") || "<span class='none'>—</span>"; };
+      h += "<div class='oterm'><div class='th'>" + esc(t) + " <small class='ocu'>" + fmt(cu) + " CU</small></div>" + ((S.recruitTerms || []).indexOf(t) >= 0 ? "<div class='rec'>recruiting</div>" : "");
+      if (!inT.length) h += "<div class='empty'>Empty</div>";
+      else if (isSummer(t)) h += "<div class='lane'><div class='lh'>Pre-term</div>" + lane(["Full", "Q1", "Q2", "Summer"]) + "</div>";
+      else h += "<div class='lane'><div class='lh'>Full semester</div>" + lane(["Full"]) + "</div><div class='qq'><div class='lane'><div class='lh'>Q1</div>" + lane(["Q1"]) + "</div><div class='lane'><div class='lh'>Q2</div>" + lane(["Q2"]) + "</div></div>";
+      h += "</div>";
     });
-    var unplaced = es.filter(function (e) { return !e.term; }).length;
-    h += "</div><div class='legend'><span><i class='c-core'></i>Core</span><span><i class='c-maj'></i>Majors</span><span><i class='c-el'></i>Electives</span>"
-      + (unplaced ? "<span>· " + unplaced + " class" + (unplaced > 1 ? "es need" : " needs") + " a term</span>" : "") + "</div></div></div>";
-    return h + summary();
+    h += "</div><div class='legend'><span><i class='c-core'></i>Core</span><span><i class='c-maj'></i>Major</span><span><i class='c-el'></i>Elective</span><span>✓ taken · ◐ in progress</span></div></div>";
+    return h + whatsLeft();
+  }
+  // "What's left" (approved mockup): the biggest gaps, most important first, each linking to where it gets fixed
+  function whatsLeft() {
+    var items = [], core = coreState(), opens = [];
+    core.forEach(function (r) { opens = opens.concat(r.open); });
+    if (opens.length) items.push(["Core", opens.slice(0, 2).join(", ") + (opens.length > 2 ? " and " + (opens.length - 2) + " more area" + (opens.length > 3 ? "s" : "") : "") + " still open", "core", "Core"]);
+    explored.forEach(function (n) {
+      var m = ALLM[n]; if (!m || !m.total) return; var r = majorProgress(m), nm = MAJ_SHORT[n] || n;
+      reqOf(m).forEach(function (c) {
+        if (!S.plan[c]) items.push([nm, c + " is required and not picked yet", "majors", "Majors"]);
+        else if (!S.plan[c].term) items.push([nm, c + " is required but not scheduled", "calendar", "Calendar"]);
+      });
+      (m.checks || []).forEach(function (k) { if (!checkMet(k)) items.push([nm, "also requires " + k.label, "majors", "Majors"]); });
+      r.groups.forEach(function (x) { if (x.g.min && x.have < x.g.min - 1e-9) items.push([nm + " · " + x.g.label, fmt(x.g.min - x.have) + " CU more needed", "electives", "Electives"]); });
+    });
+    var un = entries().filter(function (e) { return !e.term; }).length;
+    if (un) items.push(["Calendar", un + " class" + (un > 1 ? "es need" : " needs") + " a semester", "calendar", "Calendar"]);
+    var tot = entries().reduce(function (t, e) { return t + cuOf(e.code); }, 0);
+    var empty = TERMS.filter(function (t) { return !isSummer(t) && !entries().some(function (e) { return e.term === t; }); });
+    if (tot < 19) items.push(["", fmt(19 - tot) + " CU left to plan overall" + (empty.length ? " · " + empty.join(", ") + (empty.length > 1 ? " are" : " is") + " empty" : ""), "electives", "Electives", true]);
+    if (!items.length) return "<div class='left'><div class='mh'><b>What's left</b></div><div class='todo'><span class='ok'>✓</span><span>Nothing — every requirement you're tracking is covered.</span></div></div>";
+    var show = ui.leftAll ? items : items.slice(0, 5);
+    return "<div class='left'><div class='mh'><b>What's left</b><span class='hint'>Biggest gaps first</span></div>"
+      + show.map(function (x) { return "<a class='todo' href='#" + x[2] + "'><span class='" + (x[4] ? "ok" : "no") + "'>" + (x[4] ? "●" : "⚠") + "</span><span>" + (x[0] ? "<b>" + esc(x[0]) + ":</b> " : "") + esc(x[1]) + "</span><em>" + x[3] + " →</em></a>"; }).join("")
+      + (items.length > 5 ? "<button class='seemore' data-leftall='1'>" + (ui.leftAll ? "Show fewer" : "Show all " + items.length) + "</button>" : "") + "</div>";
   }
   var VIEWS = ["overview", "core", "majors", "electives", "calendar"];
-  var NEXT = { overview: ["core", "Start with Core"], core: ["majors", "Next: Majors"], majors: ["electives", "Next: Major & elective courses"], electives: ["calendar", "Next: Calendar"] };
+  var NEXT = { overview: ["core", "Start with Core"], core: ["majors", "Next: Majors"], majors: ["electives", "Next: Electives"], electives: ["calendar", "Next: Calendar"] };
   // The node test harness has no location.hash — it renders every view on one page so all checks still apply.
   var ALL_VIEWS = typeof location.hash !== "string";
   function currentView() { var v = (location.hash || "").slice(1); return VIEWS.indexOf(v) >= 0 || v === "sources" ? v : "overview"; }
@@ -899,7 +979,7 @@
     else {
       h = { overview: overviewView, core: coreView, majors: majorsView, electives: electivesView, calendar: calendarView, sources: sourcesView }[v]();
       if (NEXT[v]) h += "<div class='next'><a href='#" + NEXT[v][0] + "'>" + NEXT[v][1] + " →</a></div>";
-      if (v === "overview") h += sourcesView();
+
     }
     $("#app").innerHTML = h;
     try { [].forEach.call(document.querySelectorAll(".side a.go"), function (a) { a.classList.toggle("on", a.dataset.go === v); }); } catch (e) {}
@@ -918,7 +998,8 @@
       if (t.checked && mcard && noFlexMajors(pk).indexOf(mcard.dataset.major) >= 0) S.use[pk] = "major";   // ticked on a major's card
       else if (t.checked && !mcard && FLEX_AREA[pk]) S.use[pk] = "flex";                                   // ticked on the Core page
       if (!t.checked) delete S.use[pk]; if (t.checked) addToPlan(pk); else removeFromPlan(pk); commit();
-      return t.checked ? askDouble(pk) : (wasD ? freedDouble(pk) : null); }
+      if (t.checked) { toastAdded(pk); return askDouble(pk); }
+      return wasD ? freedDouble(pk) : null; }
     if (t.dataset.rec) {
       var r = (S.recruitTerms || []).filter(function (x) { return x !== t.dataset.rec; });
       if (t.checked) r.push(t.dataset.rec);
@@ -941,7 +1022,7 @@
     S.changes += 1; placeNew(); commit();
   });
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use]");
+    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall]");
     if (!b) return;
     var d = b.dataset;
     if (d.decide) {
@@ -949,7 +1030,8 @@
       if (d.decide === "yes") addToPlan(c);
       else { removeFromPlan(c); if (d.decide === "no") S.dec[c] = "no"; else delete S.dec[c]; }
       commit();
-      return d.decide === "yes" && !had ? askDouble(c) : (d.decide !== "yes" && wasDbl ? freedDouble(c) : null);
+      if (d.decide === "yes" && !had) { toastAdded(c); return askDouble(c); }
+      return d.decide !== "yes" && wasDbl ? freedDouble(c) : null;
     }
     if (d.filter) { ui.filter = d.filter; ui.maybeMore = 60; return render(); }
     if (d.more) { ui.maybeMore += 60; return render(); }
@@ -958,9 +1040,9 @@
     if (d.resuggest) { resuggest(); return commit(); }
     if (d.delown) { delete S.plan[d.delown]; S.changes += 1; return commit(); }
     if (d.themeSet) {
-      if (d.themeSet === "auto") { localStorage.removeItem("wcp.theme"); delete document.documentElement.dataset.theme; }
+      if (d.themeSet === "auto") { localStorage.setItem("wcp.theme", "auto"); delete document.documentElement.dataset.theme; }
       else { localStorage.setItem("wcp.theme", d.themeSet); document.documentElement.dataset.theme = d.themeSet; }
-      return;
+      markTheme(); return;
     }
     if (d.startover) {
       if (!confirm("Start over? This clears your survey answers and your plan in this browser.")) return;
@@ -971,6 +1053,9 @@
     if (d.status) { e.preventDefault(); var se = S.plan[d.status]; se.status = se.status === "" || !se.status ? "inprogress" : se.status === "inprogress" ? "taken" : ""; if (!se.status) delete se.status;
       else se.locked = true;   // in progress or taken locks it in place
       return commit(); }
+    if (d.show) { ui.show = d.show; return render(); }
+    if (d.leftall) { ui.leftAll = !ui.leftAll; return render(); }
+    if (d.addplan) { addToPlan(d.addplan); commit(); toastAdded(d.addplan); return askDouble(d.addplan); }
     if (d.use) { e.preventDefault(); var up = d.use.split("||"); S.use = S.use || {}; S.use[up[0]] = up[1]; return commit(); }
     if (d.countfor) { e.preventDefault(); var cp = d.countfor.split("||"), cur = assignment().set[cp[0]] || [];
       S.count = S.count || {}; var nx = cur.indexOf(cp[1]) >= 0 ? cur.filter(function (x) { return x !== cp[1]; }) : cur.concat([cp[1]]);
@@ -1030,6 +1115,18 @@
     o.onclick = function (ev) { if (ev.target === o || (ev.target.dataset && ev.target.dataset.cancel)) o.remove(); };
     document.body.appendChild(o);
   }
+  // "Added to …" note (approved mockup): ~2.5 s after any pick, says where the class landed
+  function toastAdded(c) {
+    try {
+      var e = S.plan[canon(c)] || S.plan[c]; if (!e) return;
+      var where = e.term ? e.term + (isSummer(e.term) ? "" : e.slot === "Q1" || e.slot === "Q2" ? " " + e.slot : " (full semester)") : "Needs a semester";
+      var old = document.querySelector(".toast"); if (old) old.remove();
+      var o = document.createElement("div"); o.className = "toast";
+      o.innerHTML = "✓ Added " + esc(e.own ? e.title : canon(c)) + " to <b>" + esc(where) + "</b> <a href='#calendar'>See calendar</a>";
+      document.body.appendChild(o);
+      setTimeout(function () { o.classList.add("bye"); setTimeout(function () { o.remove(); }, 400); }, 2600);
+    } catch (err) {}
+  }
   function popup(title, text) {
     var o = document.createElement("div");
     o.className = "pop-o"; o.innerHTML = "<div class='pop'><b>" + esc(title) + "</b><p>" + esc(text) + "</p><button>Got it</button></div>";
@@ -1038,7 +1135,7 @@
   }
   //
   var FORM = "https://docs.google.com/forms/d/e/1FAIpQLSeB0OjNLh4SqElKKX8qzFYepyg92OUG26tfyWIipcVdLw13uA/viewform?usp=pp_url", F_WHERE = "entry.1919234374", F_TEXT = "entry.499249756";
-  var PAGE_NAME = { overview: "Overview page", core: "Core page", majors: "Majors page", electives: "Major & elective courses page", calendar: "Calendar page", sources: "Sources page" };
+  var PAGE_NAME = { overview: "Overview page", core: "Core page", majors: "Majors page", electives: "Electives page", calendar: "Calendar page", sources: "Sources page" };
   function formUrl(where, text) { return FORM + "&" + F_WHERE + "=" + encodeURIComponent(where) + "&" + F_TEXT + "=" + encodeURIComponent(text); }
   function feedback() {
     countEvent("feedback-opened", "Feedback opened", false);
@@ -1056,7 +1153,7 @@
   }
   window.__wcp = { offered: offered, S: S, addToPlan: addToPlan, removeFromPlan: removeFromPlan, schedule: schedule, resuggest: resuggest,
                    render: render, LABEL: LABEL, SCORE: SCORE, coreState: coreState, majorState: majorState,
-                   cuOf: cuOf, flexUsed: flexUsed, dropInapplicable: dropInapplicable, usedForMajor: usedForMajor, countsAsCore: countsAsCore, inElectives: inElectives, assignment: assignment, dblUsed: dblUsed, explored: explored, TERMS: TERMS, CORE_CODES: CORE_CODES, HEAVY: HEAVY, ui: ui, A: A, started: started };   // for tests
+                   cuOf: cuOf, flexUsed: flexUsed, isSummer: isSummer, dropInapplicable: dropInapplicable, usedForMajor: usedForMajor, countsAsCore: countsAsCore, inElectives: inElectives, assignment: assignment, dblUsed: dblUsed, explored: explored, TERMS: TERMS, CORE_CODES: CORE_CODES, HEAVY: HEAVY, ui: ui, A: A, started: started };   // for tests
   dropInapplicable(null);   // tidy plans saved before this rule
   placeNew();   // also moves saved fixed-core classes to their first-year terms
   // After "Update survey": keep every pick, term, lock and status; only the answers-driven parts recalibrate

@@ -17,7 +17,7 @@ async function board(page, survey, hash = "") {
   await expect(page.locator(".side a.go.on")).toBeVisible();
 }
 const view = async (page, v) => { await page.click(`.side a[data-go='${v}']`); await expect(page.locator(".side a.go.on")).toHaveAttribute("data-go", v); };
-const calTerm = (page, code) => page.locator(`.cal [data-chip='${code}']`).evaluate(e => e.closest("td").dataset.term);
+const calTerm = (page, code) => page.locator(`.cal [data-chip='${code}']`).evaluate(e => e.closest(".slot").dataset.term);
 
 test("five majors: all five show, then drop to two — tags, filters, overview and the survey follow", async ({ page }) => {
   await board(page, P("x-five-majors"), "#majors");
@@ -156,8 +156,7 @@ test("many electives spread across semesters — recruiting terms stay lighter, 
   await board(page, s, "#electives");
   for (let i = 0; i < 12; i++) await page.locator(".col:nth-child(2) .card[data-code]").first().locator("[data-decide='yes']").click();
   await view(page, "calendar");
-  const loads = await page.locator(".cal tr").evaluateAll(rows => rows.filter(r => r.querySelector("td.tcu"))
-    .map(r => [r.querySelector("td.tn").textContent.match(/^\w+ '\d\d/)[0], parseFloat(r.querySelector("td.tcu").textContent)]));
+  const loads = await page.locator(".cal .r3").evaluateAll(rows => rows.map(r => [r.dataset.termRow, parseFloat(r.querySelector(".tcu").textContent)]));
   const L = Object.fromEntries(loads);
   for (const t of ["Spring '27", "Fall '27", "Spring '28"]) expect(L[t], t).toBeGreaterThan(0);   // spread, not piled into one term
   for (const t in L) expect(L[t], t).toBeLessThanOrEqual(5.5);
@@ -212,7 +211,7 @@ test("Class of 2027 gets 2025–27 semesters everywhere", async ({ page }) => {
   await board(page, P("x-2027"), "#calendar");
   await expect(page.locator(".cal")).toContainText("Fall '25");
   await view(page, "overview");
-  await expect(page.locator(".tl")).toContainText("Spring '27");
+  await expect(page.locator(".ocal")).toContainText("Spring '27");
 });
 
 test("a class not offered this year can still be picked — with a double-check warning everywhere it shows", async ({ page }) => {
@@ -241,7 +240,7 @@ test("lock icons: locked and unlocked look different", async ({ page }) => {
   await expect(btn).toBeVisible();
   await btn.click();
   await expect(page.locator(".cal .lk.on, .tray .lk.on").first()).toBeVisible();
-  await expect(page.locator(".resug")).toContainText("Re-places every unlocked");
+  await expect(page.locator(".legendbox")).toContainText("Suggested");
 });
 
 test("calendar: nothing is marked taken until the student says so; status cycles; legend explains it", async ({ page }) => {
@@ -250,13 +249,13 @@ test("calendar: nothing is marked taken until the student says so; status cycles
   await page.locator("input[data-pick='MKTG 6110']").check();
   await view(page, "calendar");
   await expect(page.locator(".legendbox")).toContainText("Locked");
-  await expect(page.locator(".legendbox")).toContainText("the planner never guesses");
+  await expect(page.locator(".legendbox")).toContainText("click to change");
   const b = page.locator("[data-status='MKTG 6110']");
   await expect(b).toHaveText("Not started");
   await b.click(); await expect(page.locator("[data-status='MKTG 6110']")).toContainText("In progress");
   await page.locator("[data-status='MKTG 6110']").click(); await expect(page.locator("[data-status='MKTG 6110']")).toContainText("Taken");
   await view(page, "overview");
-  await expect(page.locator(".summ")).toContainText("0.5 / 3.5");
+  expect(await page.evaluate(() => window.__wcp.coreState()[0].t)).toBeCloseTo(0.5, 5);   // taken counts as done (fixed core 0.5 of 3.5)
   await view(page, "calendar");
   await page.locator("[data-status='MKTG 6110']").click(); await expect(page.locator("[data-status='MKTG 6110']")).toHaveText("Not started");
 });
@@ -270,12 +269,12 @@ test("a core substitute counts as core, not as a major/elective course", async (
   await view(page, "electives");
   await expect(page.locator(`.card[data-code='${code}']`)).toHaveCount(0);
   await view(page, "calendar");
-  await expect(page.locator(`[data-chip='${code}'] .ctags`)).toContainText("Core");
+  await expect(page.locator(`[data-chip='${code}'] .kbot`)).toContainText("Core");
 });
 
 test("first-fall slots: BEPP 6110 Q1, BEPP 6120 Q2 (even if 6110 waived), STAT 6130 full, STAT 6210 Q1", async ({ page }) => {
   await board(page, P("q01-01"), "#core");
-  const slotOf = code => page.locator(`.cal [data-chip='${code}']`).evaluate(e => e.closest("td").dataset.term + " " + e.closest("td").dataset.slot);
+  const slotOf = code => page.locator(`.cal [data-chip='${code}']`).evaluate(e => e.closest(".slot").dataset.term + " " + e.closest(".slot").dataset.slot);
   await page.locator("label:has(input[data-core='Microeconomics'][value='take'])").click();
   await page.locator("input[data-pick='BEPP 6110']").check();
   await page.locator("input[data-pick='BEPP 6120']").check();
@@ -367,7 +366,7 @@ test("double-counting: auto-trims to 2.0 CU, override wins (red if over), back t
   r = await st();
   expect(r.dbl).toBeGreaterThan(2);
   await view(page, "overview");
-  await expect(page.locator(".summ .sx.dover")).toBeVisible();
+  await expect(page.locator(".kpi.dblk.over")).toBeVisible();
   await page.evaluate(c => { const P = window.__wcp; P.S.count = {}; P.S.count[c] = P.assignment().set[c].concat(P.assignment().trimmed[c] || []); P.render(); }, trimmedClass);
   // the class's tags follow the choice
   await view(page, "electives");
@@ -388,7 +387,7 @@ test("double-counting: auto-trims to 2.0 CU, override wins (red if over), back t
 
 test("electives page explains it's the complete list; 'All other Wharton electives' filter", async ({ page }) => {
   await board(page, Object.assign({}, P("q01-01"), { majors: ["Finance"] }), "#electives");
-  await expect(page.locator(".sub").first()).toContainText("complete list of every Wharton class outside core and flex core");
+  await expect(page.locator(".sub").first()).toContainText("Every Wharton class outside core");
   await page.click("[data-filter='none']");
   await expect(page.locator("[data-filter='none']")).toHaveText("All other Wharton electives");
   const tagged = await page.locator(".col:nth-child(2) .card .tag.mj").count();
@@ -624,10 +623,11 @@ test("dragging a class moves it without locking it; a moved first-year class sta
   await page.locator("input[data-pick='WHCP 6140']").check().catch(async () => page.locator(".cg", { hasText: "Communication" }).first().locator("input[data-pick]").first().check());
   const code = await page.evaluate(() => Object.keys(window.__wcp.S.plan)[0]);
   await view(page, "calendar");
-  await page.locator(`.cal [data-chip='${code}']`).dragTo(page.locator(`.cal td.slot[data-term="Spring '27"][data-slot='Q1']`));
+  await page.setViewportSize({ width: 1440, height: 2600 });   // keep the target on screen — a mid-drag scroll cancels a browser drag
+  await page.locator(`.cal [data-chip='${code}']`).dragTo(page.locator(`.cal .slot[data-term="Spring '27"][data-slot='Q1']`));
   if (await page.locator(".pop button").count()) {   // a full-semester class can't go in a quarter — use the Full column
     await page.locator(".pop button").click();
-    await page.locator(`.cal [data-chip='${code}']`).dragTo(page.locator(`.cal td.slot[data-term="Spring '27"][data-slot='Full']`));
+    await page.locator(`.cal [data-chip='${code}']`).dragTo(page.locator(`.cal .slot[data-term="Spring '27"][data-slot='Full']`));
   }
   const e = await page.evaluate(c => window.__wcp.S.plan[c], code);
   expect(e.term).toBe("Spring '27");
@@ -651,6 +651,22 @@ test("survey has the light/dark switch and the choice carries to the board", asy
   await page.goto("/index.html");
   await page.click(".themesw [data-theme-set='auto']");
   expect(await page.evaluate(() => document.documentElement.dataset.theme || "")).toBe("");
+  expect(await page.evaluate(() => localStorage.getItem("wcp.theme"))).toBe("auto");
+  await page.reload();
+  expect(await page.evaluate(() => document.documentElement.dataset.theme || "")).toBe("");   // Auto sticks
+});
+
+test("light is the default on both pages, even when the device is in dark mode", async ({ browser }) => {
+  const ctx = await browser.newContext({ colorScheme: "dark" }); const page = await ctx.newPage();
+  await page.route(/goatcounter\.com|gc\.zgo\.at/, r => r.abort());
+  await page.goto("/index.html"); await page.evaluate(() => localStorage.clear()); await page.reload();
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("light");
+  await expect(page.locator(".themesw [data-theme-set='light']")).toHaveClass(/on/);
+  await page.evaluate(a => localStorage.setItem("wcp.answers", JSON.stringify(a)), P("q01-01"));
+  await page.goto("/board.html");
+  expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe("light");
+  await expect(page.locator(".theme [data-theme-set='light']")).toHaveClass(/on/);
+  await ctx.close();
 });
 
 test("survey answer lists are alphabetical where it makes sense; catch-alls last; timelines unchanged", async ({ page }) => {
@@ -685,4 +701,33 @@ test("feedback: Send opens the Google Form with Where = the page (board) or 'Q1 
   expect(u).toContain("entry.1919234374=Q1 · Which class are you in?");
   expect(u).toContain("entry.499249756=Add Class of 2029?");
   await expect(page.locator("footer .privacy, .privacy").first()).toContainText("Google Forms");
+});
+
+test("overview: How it works, compact calendar (Summer is one box), What's left with links", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Finance"] }), "#core");
+  await page.locator("label:has(input[data-core='Leadership'][value='take'])").click();
+  await page.locator("input[data-pick='MGMT 6100']").check();
+  await view(page, "overview");
+  await expect(page.locator(".how")).toContainText("Pick classes in Core, Majors and Electives");
+  await expect(page.locator(".oterm").first()).toContainText("Pre-term");
+  await expect(page.locator(".oterm").first()).toContainText("MGMT 6100");
+  await expect(page.locator(".left .todo").first()).toBeVisible();
+  await expect(page.locator(".left")).toContainText("FNCE 6110 is required and not picked yet");
+  await page.locator(".left .todo", { hasText: "FNCE 6110" }).click();
+  await expect(page.locator(".side a.go.on")).toHaveAttribute("data-go", "majors");
+});
+
+test("calendar: Show filter fades other classes; + Add from a major adds and shows the 'Added to' note", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Finance"] }), "#calendar");
+  await page.locator(".mc .tp.add").first().click();
+  await expect(page.locator(".toast")).toContainText("Added");
+  await page.evaluate(() => { window.__wcp.addToPlan("FNCE 7500"); window.__wcp.render(); });   // a Finance elective, so "Core & flex" has something to fade
+  await expect(page.locator(".cal [data-chip]").first()).toBeVisible();
+  await page.click("[data-show='core']");
+  await expect(page.locator("[data-show='core']")).toHaveClass(/on/);
+  const dims = await page.locator(".cal .chip.dim").count();
+  const all = await page.locator(".cal .chip").count();
+  expect(dims).toBeGreaterThan(0); expect(dims).toBeLessThanOrEqual(all);
+  await page.click("[data-show='all']");
+  await expect(page.locator(".cal .chip.dim")).toHaveCount(0);
 });

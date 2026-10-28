@@ -48,9 +48,10 @@ test.beforeEach(async ({ page }) => {
 test("survey → board shows summary, Start here, recommendations and privacy", async ({ page }) => {
   await takeSurvey(page);
   await expect(page.locator(".side a.go.on")).toHaveText("Overview");
-  await expect(page.locator(".summ-h")).toHaveText("Your plan");
   expect(await page.locator(".kpi").count()).toBeGreaterThanOrEqual(3);
-  await expect(page.locator(".tl")).toBeVisible();
+  await expect(page.locator(".how")).toBeVisible();
+  await expect(page.locator(".ocal")).toBeVisible();
+  await expect(page.locator(".left")).toContainText("What's left");
   await expect(page.getByText("Not a fit")).toHaveCount(0);
   await expect(page.locator(".pv")).toContainText("Saved only in this browser");
   await expect(page.locator("footer .privacy")).toContainText("Nothing you enter is stored on a server");
@@ -102,14 +103,15 @@ test("calendar: lock, invalid drop shows a pop-up, Re-suggest keeps locks", asyn
   const code = await chip.getAttribute("data-chip");
   await chip.locator("[data-lock]").click();
   await expect(page.locator(`.cal .chip.locked[data-chip='${code}']`)).toBeVisible();
-  const before = await page.locator(`.cal [data-chip='${code}']`).evaluate(e => e.closest("td").dataset.term + e.closest("td").dataset.slot);
+  const before = await page.locator(`.cal [data-chip='${code}']`).evaluate(e => e.closest(".slot").dataset.term + e.closest(".slot").dataset.slot);
   await page.click("[data-resuggest]");
-  const after = await page.locator(`.cal [data-chip='${code}']`).evaluate(e => e.closest("td").dataset.term + e.closest("td").dataset.slot);
+  const after = await page.locator(`.cal [data-chip='${code}']`).evaluate(e => e.closest(".slot").dataset.term + e.closest(".slot").dataset.slot);
   expect(after).toBe(before);
   if (!isMobile) {
+    await page.setViewportSize({ width: 1440, height: 2600 });   // keep the target on screen — a mid-drag scroll cancels a browser drag
     const full = page.locator(".cal .chip").filter({ has: page.locator(".cu", { hasText: /^1$/ }) }).first();
     if (await full.count()) {
-      await full.dragTo(page.locator(".cal td.slot[data-slot='Q1']").first());
+      await full.dragTo(page.locator(".cal .slot[data-slot='Q1']").first());
       await expect(page.locator(".pop")).toContainText("Can't place that there");
       await page.locator(".pop button").click();
     }
@@ -147,7 +149,7 @@ test("recruiting semesters from the survey are the ones kept lighter", async ({ 
   await expect(page.locator("input[data-rec=\"Spring '27\"]")).toBeChecked();
   await expect(page.locator("input[data-rec=\"Fall '27\"]")).toBeChecked();
   await expect(page.locator("input[data-rec=\"Spring '28\"]")).not.toBeChecked();
-  await expect(page.locator("td.tn", { hasText: "Spring '27" })).toContainText("recruiting term");
+  await expect(page.locator(".r3[data-term-row=\"Spring '27\"] .tn")).toContainText("recruiting");
 });
 
 test("usage counts send event names only — never answers", async ({ page }) => {

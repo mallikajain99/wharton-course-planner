@@ -101,7 +101,7 @@ button:focus:not(:focus-visible){outline:none}
  .grid td[data-l] label{width:100%;height:auto;border-radius:99px;padding:6px 0;font-size:12px;box-shadow:none}
  .grid td[data-l] label::after{content:attr(data-l)}
  .grid td[data-l] label:has(input:checked){background:var(--acc);color:var(--onacc);box-shadow:none}
-}</style><script>try{var th=localStorage.getItem("wcp.theme");if(th)document.documentElement.dataset.theme=th;}catch(e){}</script><script data-goatcounter="https://mallikajain.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+}</style><script>try{var th=localStorage.getItem("wcp.theme")||"light";if(th!=="auto")document.documentElement.dataset.theme=th;}catch(e){}</script><script data-goatcounter="https://mallikajain.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head><body>
 <div class="themesw" aria-label="Color theme"><button data-theme-set="auto" title="Follow my system">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></div>
 <div id="parts"></div>
@@ -148,7 +148,7 @@ html+="<div class='part welcome' data-s='0'><div class='intro'><div class='logo'
  +"<ol class='how'>"
  +"<li><i>1</i><div><b>Take a short survey</b><span>What you did before Wharton, what you're interested in, and which majors you're considering (about 3 minutes). Your answers generate your elective recommendations and set your preferences for the calendar, like which semesters to keep lighter for recruiting.</span></div></li>"
  +"<li><i>2</i><div><b>Check off your core</b><span>Mark which core and flex core classes you'll take, waive, or place out of. This tells the planner what's already covered, so your credit totals are accurate and core lands early on your calendar.</span></div></li>"
- +"<li><i>3</i><div><b>Pick major and elective courses from your recommendations</b><span>Every Wharton class is ranked for you, with the strongest matches labeled Best fit or Good fit. What you pick counts toward your majors, so you can see how close you are to completing each one.</span></div></li>"
+ +"<li><i>3</i><div><b>Pick electives from your recommendations</b><span>Every Wharton class is ranked for you, with the strongest matches labeled Best fit or Good fit. What you pick counts toward your majors, so you can see how close you are to completing each one.</span></div></li>"
  +"<li><i>4</i><div><b>Arrange your calendar</b><span>Your picks are placed semester by semester, so you can check that everything fits in two years before you register. Drag, drop and lock in classes to create your perfect schedule!</span></div></li>"
  +"</ol>"
  +"<p class='privacy'><b>Privacy:</b> Nothing you enter is stored on a server or sent anywhere — your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them. We count anonymous visits, completed surveys and started plans (never your answers or any personal details) to see how many people use the planner. Feedback you choose to send goes to the planner's creator through Google Forms, only when you click Submit there.</p>"
@@ -189,10 +189,10 @@ document.addEventListener("change",function(e){
  var on=!!q.querySelector("input[value='__other']:checked");
  oth.classList.toggle("on",on); if(on&&e.target.value==="__other") oth.querySelector("input").focus();
 });
-function themeMark(){ var t=localStorage.getItem("wcp.theme")||"auto"; [].forEach.call(document.querySelectorAll("[data-theme-set]"),function(b){ b.classList.toggle("on",b.dataset.themeSet===t); }); }
+function themeMark(){ var t=localStorage.getItem("wcp.theme")||"light"; [].forEach.call(document.querySelectorAll("[data-theme-set]"),function(b){ b.classList.toggle("on",b.dataset.themeSet===t); }); }
 document.addEventListener("click",function(e){
  var tb=e.target.closest&&e.target.closest("[data-theme-set]"); if(!tb) return;
- try{ if(tb.dataset.themeSet==="auto"){ localStorage.removeItem("wcp.theme"); delete document.documentElement.dataset.theme; }
+ try{ if(tb.dataset.themeSet==="auto"){ localStorage.setItem("wcp.theme","auto"); delete document.documentElement.dataset.theme; }
   else { localStorage.setItem("wcp.theme",tb.dataset.themeSet); document.documentElement.dataset.theme=tb.dataset.themeSet; } }catch(err){}
  themeMark();
 });
