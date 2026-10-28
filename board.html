@@ -29,6 +29,7 @@ button:focus:not(:focus-visible){outline:none}
 .top h1{font-size:15px;margin:0;color:var(--muted);font-weight:700;flex:1}
 .top a,.top button{font:inherit;font-size:13px;font-weight:600;padding:7px 13px;border:1px solid var(--rule);border-radius:999px;background:var(--card);color:var(--ink2);cursor:pointer;text-decoration:none}
 .top a:hover,.top button:hover{color:var(--acc);border-color:var(--acc)}
+.top button.exp{background:var(--acc);border-color:var(--acc);color:var(--onacc);font-weight:800}.top button.exp:hover{filter:brightness(1.1);color:var(--onacc)}
 .theme{display:inline-flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden;background:var(--card)}
 .theme button{border:0;border-radius:0;padding:7px 11px}
 .theme button.on{background:var(--acc);color:var(--onacc)}
@@ -340,7 +341,7 @@ footer{padding:0 30px 40px}
 <div class="mainw">
 <header class="top"><h1>Wharton Course Planner</h1><span class="pv" title="Your answers and plan stay in this browser. Only anonymous usage counts (visits, completed surveys, started plans) are recorded.">🔒 Saved only in this browser</span>
   <span class="theme"><button data-theme-set="auto" title="Follow my system">Auto</button><button data-theme-set="light">Light</button><button data-theme-set="dark">Dark</button></span>
-  <button data-feedback="1">Feedback</button><a href="index.html" title="Change your answers — your picked classes, semesters, locks and statuses are kept">Update survey</a><button data-startover="1">Start over</button></header>
+  <button class="exp" data-export="1" title="Download your whole plan as an Excel file">⬇ Export to Excel</button><button data-feedback="1">Feedback</button><a href="index.html" title="Change your answers — your picked classes, semesters, locks and statuses are kept">Update survey</a><button data-startover="1">Start over</button></header>
 <main id="app"></main><footer><div class='privacy'><b>Privacy:</b> Nothing you enter is stored on a server or sent anywhere — your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them. We count anonymous visits, completed surveys and started plans (never your answers or any personal details) to see how many people use the planner. Feedback you choose to send goes to the planner's creator through Google Forms, only when you click Submit there.</div></footer>
 </div></div>
 <script src="data.js"></script>

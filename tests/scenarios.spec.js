@@ -78,6 +78,39 @@ test("× on a calendar class: unlocked goes with Undo, removed = decided No, loc
   await expect(chipOf(c)).toHaveCount(1);
 });
 
+test("Export to Excel: downloads a valid workbook whose numbers match the dashboard", async ({ page }, info) => {
+  await page.setViewportSize({ width: 1400, height: 2400 });
+  await board(page, P("x-five-majors"), "#core");
+  await page.locator("label:has(input[data-core='Leadership'][value='take'])").click();
+  await page.locator("input[data-pick='MGMT 6100']").check();
+  await view(page, "calendar");
+  for (let i = 0; i < 6; i++) await page.locator("[data-addplan]").first().click();
+  const first = page.locator(".cal .chip.k").first();
+  await first.locator(".stb").click(); await first.locator(".stb").click();   // one class taken
+  const chips = await page.locator(".cal .chip.k").count();
+  await view(page, "overview");
+  const total = (await page.locator(".kpi.hero b").innerText()).split(" /")[0];
+  const rings = await page.locator(".kpis.majrow .kpi").evaluateAll(els => els.map(e => [e.querySelector("small").innerText, e.querySelector("b").innerText]));
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.click("[data-export]")]);
+  expect(dl.suggestedFilename()).toMatch(/^wharton-plan-\d{4}-\d{2}-\d{2}\.xlsx$/);
+  const file = info.outputPath("plan.xlsx"); await dl.saveAs(file);
+  const { execFileSync } = require("child_process");
+  const check = execFileSync("python3", [__dirname + "/read_xlsx.py", file, "--check"]).toString();
+  expect(check).toContain("XLSX OK");
+  const dump = execFileSync("python3", [__dirname + "/read_xlsx.py", file]).toString();
+  const tabs = [...dump.matchAll(/^=== (.*)$/gm)].map(m => m[1]);
+  expect(tabs.slice(0, 6)).toEqual(["README", "Survey responses", "Summary", "Schedule", "Core", "Flex"]);
+  expect(tabs[tabs.length - 1]).toBe("Remaining Wharton classes");
+  expect(tabs.filter(t => t.startsWith("Major - "))).toHaveLength(P("x-five-majors").majors.length);
+  const tab = name => dump.split("=== " + name + "\n")[1].split("\n=== ")[0].split("\n").map(l => l.split("\t"));
+  expect(tab("Schedule").length - 1).toBe(chips);                                   // one row per class on the calendar
+  expect(tab("Summary").find(r => r[0] === "Total planned")[1]).toBe(total);        // same total as the Overview
+  expect(tab("Schedule").some(r => r[5] === "Taken")).toBe(true);
+  for (const [, got] of rings) expect(dump).toContain(got.replace(" / ", " of ") + " CU");   // each major's progress
+  expect(dump).not.toContain("HYPERLINK");                                             // links come out as their text
+  expect(tab("README").some(r => r[1] && r[1].startsWith("https://"))).toBe(true);
+});
+
 test("add a major from the Majors page", async ({ page }) => {
   await board(page, P("x-no-majors"), "#majors");
   await expect(page.locator(".cg[data-major]")).toHaveCount(0);

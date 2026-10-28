@@ -501,6 +501,28 @@
       + "<div class='skey'><span class='k st'></span> taken / in progress &nbsp; <span class='k sp'></span> planned · hover a row for what's still open</div></section>";
     return h;
   }
+  // One core area's status line — shared by the Core page and the Excel export so the two can't disagree
+  function coreArea(a) {
+    var st = S.core[a.name], r = D.groupRules[a.name] || {};
+    // waived is blocked only where a source says it can't be waived; undocumented areas stay clickable with a caution
+    var can = { take: true, waived: r.waive !== false, substituted: !!r.subs };
+    var opts = st === "substituted" ? subOptions(a).map(function (c) { return { code: c.code, title: c.title, cu: c.cu, note: "" }; }) : takeOptions(a).map(function (o) { return Object.assign({}, o, { code: canon(o.code) }); });
+    var counts = function (o) { return S.plan[o.code] && !usedForMajor(o.code); };   // a class switched to a major doesn't cover flex
+    var have = opts.filter(counts).reduce(function (s, o) { return s + o.cu; }, 0);
+    var picked = opts.filter(counts).length;
+    var status, met;
+    if (!st) { status = "choose: " + ["Take"].concat(can.waived ? ["Waived"] : [], can.substituted ? [r.placement ? "Placement" : "Substituted"] : []).join(" · "); met = false; }
+    else if (st === "waived" && r.waive_only) {   // partial waiver: the rest is still required
+      var restOpts = opts.filter(function (o) { return r.waive_only.indexOf(o.code) < 0; });
+      met = restOpts.every(function (o) { return S.plan[o.code]; });
+      status = met ? "✓ covered (" + r.waive_only.join(", ") + " waived)" : r.waive_only.join(", ") + " waived · still need " + restOpts.filter(function (o) { return !S.plan[o.code]; }).map(function (o) { return o.code; }).join(", ");
+    }
+    else if (st === "waived") { status = "✓ waived"; met = true; }
+    else if (st === "substituted") { met = picked > 0; status = met ? (r.placement ? "✓ placed" : "✓ substituted") : (r.placement ? "tick the placement class" : "pick a substitute"); }
+    else { var an = areaNeed(a); met = have >= an && (an > 0 || picked > 0); status = met ? "✓ covered" : (an ? fmt(have) + " of " + fmt(an) + " CU" : "not selected");
+           if (a.rule === "pick one" && picked > 1) { status = "⚠ " + picked + " selected — pick one"; met = false; } }
+    return { st: st, r: r, can: can, opts: opts, status: status, met: met };
+  }
   function coreView() {
     var h = "<h2>Core requirements</h2><div class='startbanner'><b>Start here.</b> For each area, choose how you're meeting it — "
       + "<b>Take</b>, <b>Waived</b>, <b>Placement</b> or <b>Substituted</b> (where allowed) — then tick the classes you've taken, are taking, or plan to take. Areas stay unanswered until you choose.</div>";
@@ -511,24 +533,7 @@
     D.core.forEach(function (sec) {
       h += "<div class='sect'>" + esc(sec.section) + "</div><div class='grid'>";
       sec.areas.forEach(function (a) {
-        var st = S.core[a.name], r = D.groupRules[a.name] || {};
-        // waived is blocked only where a source says it can't be waived; undocumented areas stay clickable with a caution
-        var can = { take: true, waived: r.waive !== false, substituted: !!r.subs };
-        var opts = st === "substituted" ? subOptions(a).map(function (c) { return { code: c.code, title: c.title, cu: c.cu, note: "" }; }) : takeOptions(a).map(function (o) { return Object.assign({}, o, { code: canon(o.code) }); });
-        var counts = function (o) { return S.plan[o.code] && !usedForMajor(o.code); };   // a class switched to a major doesn't cover flex
-        var have = opts.filter(counts).reduce(function (s, o) { return s + o.cu; }, 0);
-        var picked = opts.filter(counts).length;
-        var status, met;
-        if (!st) { status = "choose: " + ["Take"].concat(can.waived ? ["Waived"] : [], can.substituted ? [r.placement ? "Placement" : "Substituted"] : []).join(" · "); met = false; }
-        else if (st === "waived" && r.waive_only) {   // partial waiver: the rest is still required
-          var restOpts = opts.filter(function (o) { return r.waive_only.indexOf(o.code) < 0; });
-          met = restOpts.every(function (o) { return S.plan[o.code]; });
-          status = met ? "✓ covered (" + r.waive_only.join(", ") + " waived)" : r.waive_only.join(", ") + " waived · still need " + restOpts.filter(function (o) { return !S.plan[o.code]; }).map(function (o) { return o.code; }).join(", ");
-        }
-        else if (st === "waived") { status = "✓ waived"; met = true; }
-        else if (st === "substituted") { met = picked > 0; status = met ? (r.placement ? "✓ placed" : "✓ substituted") : (r.placement ? "tick the placement class" : "pick a substitute"); }
-        else { var an = areaNeed(a); met = have >= an && (an > 0 || picked > 0); status = met ? "✓ covered" : (an ? fmt(have) + " of " + fmt(an) + " CU" : "not selected");
-               if (a.rule === "pick one" && picked > 1) { status = "⚠ " + picked + " selected — pick one"; met = false; } }
+        var x = coreArea(a), st = x.st, r = x.r, can = x.can, opts = x.opts, status = x.status, met = x.met;
         h += "<div class='cg" + (met ? " met" : "") + (st ? "" : " unanswered") + "'><div class='gh'><span class='gn'>" + esc(a.name) + "</span><span class='gs'>" + esc(a.rule) + " · " + esc(status) + "</span></div>";
         h += "<div class='cst'><span class='cst-l'>Status:</span>" + [["take", "Take"], ["waived", "Waived"], ["substituted", r.placement ? "Placement" : "Substituted"]].map(function (v) {
           return "<label class='" + (can[v[0]] ? "" : "dis") + "'" + (can[v[0]] ? "" : " title='" + (v[0] === "waived" ? "This area can't be waived" : "No substitution is documented for this area") + "'") + "><input type='radio' name='cs-" + esc(a.name) + "' data-core='" + esc(a.name) + "' value='" + v[0] + "'" + (st === v[0] ? " checked" : "") + (can[v[0]] ? "" : " disabled") + "> " + v[1] + "</label>";
@@ -1036,7 +1041,7 @@
     S.changes += 1; placeNew(); commit();
   });
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall],[data-rmcal]");
+    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall],[data-rmcal],[data-export]");
     if (!b) return;
     var d = b.dataset;
     if (d.decide) {
@@ -1068,6 +1073,7 @@
       if (se.status) { if (!se.locked) se.autoLock = true; se.locked = true; }   // in progress / taken locks it…
       else { delete se.status; if (se.autoLock) se.locked = false; delete se.autoLock; }   //
       return commit(); }
+    if (d.export) return exportXlsx();
     if (d.rmcal) { e.preventDefault(); return calRemove(d.rmcal); }
     if (d.show) { ui.show = d.show; return render(); }
     if (d.leftall) { ui.leftAll = !ui.leftAll; return render(); }
@@ -1173,6 +1179,216 @@
     setTimeout(function () { o.classList.add("bye"); setTimeout(function () { o.remove(); }, 400); }, 5000);
     if (wasDbl) freedDouble(c);
   }
+  // ---------- Export to Excel (approved mockup: design/mockup-export.html, Oct 28) ----------
+  // Built entirely in the browser — a hand-written .xlsx (a zip of XML files), no library and nothing sent anywhere.
+  var CRC = (function () { var t = []; for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(b) { var c = -1; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ -1) >>> 0; }
+  function zipFiles(files) {   // stored (uncompressed) zip — Excel, Numbers and Google Sheets all open it
+    var enc = new TextEncoder(), out = [], cen = [], off = 0, now = new Date();
+    var dd = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    var le = function (arr, n, bytes) { for (var i = 0; i < bytes; i++) arr.push((n >>> (8 * i)) & 255); };
+    files.forEach(function (f) {
+      var nm = enc.encode(f.name), d = enc.encode(f.data), crc = crc32(d), h = [];
+      le(h, 0x04034b50, 4); le(h, 20, 2); le(h, 0x0800, 2); le(h, 0, 2); le(h, 0, 2); le(h, dd, 2); le(h, crc, 4); le(h, d.length, 4); le(h, d.length, 4); le(h, nm.length, 2); le(h, 0, 2);
+      out.push(new Uint8Array(h), nm, d);
+      var c = []; le(c, 0x02014b50, 4); le(c, 20, 2); le(c, 20, 2); le(c, 0x0800, 2); le(c, 0, 2); le(c, 0, 2); le(c, dd, 2); le(c, crc, 4); le(c, d.length, 4); le(c, d.length, 4);
+      le(c, nm.length, 2); le(c, 0, 2); le(c, 0, 2); le(c, 0, 2); le(c, 0, 2); le(c, 0, 4); le(c, off, 4);
+      cen.push(new Uint8Array(c), nm);
+      off += h.length + nm.length + d.length;
+    });
+    var csize = cen.reduce(function (t, x) { return t + x.length; }, 0), e = [];
+    le(e, 0x06054b50, 4); le(e, 0, 2); le(e, 0, 2); le(e, files.length, 2); le(e, files.length, 2); le(e, csize, 4); le(e, off, 4); le(e, 0, 2);
+    return new Blob(out.concat(cen, [new Uint8Array(e)]), { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  }
+  var xesc = function (s) { return String(s == null ? "" : s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  function colName(i) { var s = ""; i++; while (i) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+  // A sheet = { name, widths: [..], freeze: bool, rows: [[cell..]..] }. A cell is a string, a number, or
+  // { v, s } where s is a style: "h" header · "sec" section title · "b" bold · "w" wrapped · "link" (v = url, text = shown)
+  var XS = { "": 0, h: 1, w: 2, link: 3, sec: 4, b: 5 };
+  function sheetXml(sh) {
+    var rows = sh.rows.map(function (row, ri) {
+      return "<row r='" + (ri + 1) + "'>" + row.map(function (cell, ci) {
+        if (cell == null || cell === "") return "";
+        var o = typeof cell === "object" ? cell : { v: cell }, ref = colName(ci) + (ri + 1), s = XS[o.s || (sh.wrap && sh.wrap.indexOf(ci) >= 0 ? "w" : "")] || 0;
+        if (o.s === "link") { var t = o.text || o.v;
+          return "<c r='" + ref + "' s='3' t='str'><f>" + xesc("HYPERLINK(\"" + String(o.v).replace(/"/g, '""') + "\",\"" + String(t).replace(/"/g, '""') + "\")") + "</f><v>" + xesc(t) + "</v></c>"; }
+        if (typeof o.v === "number") return "<c r='" + ref + "' s='" + s + "'><v>" + o.v + "</v></c>";
+        return "<c r='" + ref + "' s='" + s + "' t='inlineStr'><is><t xml:space='preserve'>" + xesc(o.v) + "</t></is></c>";
+      }).join("") + "</row>";
+    }).join("");
+    return "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><worksheet xmlns='http://schemas.openxmlformats.org/spreadsheetml/2006/main'>"
+      + (sh.freeze ? "<sheetViews><sheetView workbookViewId='0'><pane ySplit='1' topLeftCell='A2' activePane='bottomLeft' state='frozen'/></sheetView></sheetViews>" : "")
+      + "<cols>" + (sh.widths || []).map(function (w, i) { return "<col min='" + (i + 1) + "' max='" + (i + 1) + "' width='" + w + "' customWidth='1'/>"; }).join("") + "</cols>"
+      + "<sheetData>" + rows + "</sheetData></worksheet>";
+  }
+  function workbook(sheets) {
+    var ns = "http://schemas.openxmlformats.org/", files = [];
+    files.push({ name: "[Content_Types].xml", data: "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><Types xmlns='" + ns + "package/2006/content-types'><Default Extension='rels' ContentType='application/vnd.openxmlformats-package.relationships+xml'/><Default Extension='xml' ContentType='application/xml'/>"
+      + "<Override PartName='/xl/workbook.xml' ContentType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml'/><Override PartName='/xl/styles.xml' ContentType='application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml'/>"
+      + sheets.map(function (s, i) { return "<Override PartName='/xl/worksheets/sheet" + (i + 1) + ".xml' ContentType='application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml'/>"; }).join("") + "</Types>" });
+    files.push({ name: "_rels/.rels", data: "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><Relationships xmlns='" + ns + "package/2006/relationships'><Relationship Id='rId1' Type='" + ns + "officeDocument/2006/relationships/officeDocument' Target='xl/workbook.xml'/></Relationships>" });
+    files.push({ name: "xl/workbook.xml", data: "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><workbook xmlns='" + ns + "spreadsheetml/2006/main' xmlns:r='" + ns + "officeDocument/2006/relationships'><sheets>"
+      + sheets.map(function (s, i) { return "<sheet name='" + xesc(s.name).replace(/'/g, "&apos;") + "' sheetId='" + (i + 1) + "' r:id='rId" + (i + 1) + "'/>"; }).join("") + "</sheets></workbook>" });
+    files.push({ name: "xl/_rels/workbook.xml.rels", data: "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><Relationships xmlns='" + ns + "package/2006/relationships'>"
+      + sheets.map(function (s, i) { return "<Relationship Id='rId" + (i + 1) + "' Type='" + ns + "officeDocument/2006/relationships/worksheet' Target='worksheets/sheet" + (i + 1) + ".xml'/>"; }).join("")
+      + "<Relationship Id='rId" + (sheets.length + 1) + "' Type='" + ns + "officeDocument/2006/relationships/styles' Target='styles.xml'/></Relationships>" });
+    files.push({ name: "xl/styles.xml", data: "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><styleSheet xmlns='" + ns + "spreadsheetml/2006/main'>"
+      + "<fonts count='3'><font><sz val='11'/><name val='Calibri'/></font><font><b/><sz val='11'/><name val='Calibri'/></font><font><u/><sz val='11'/><color rgb='FF0563C1'/><name val='Calibri'/></font></fonts>"
+      + "<fills count='4'><fill><patternFill patternType='none'/></fill><fill><patternFill patternType='gray125'/></fill><fill><patternFill patternType='solid'><fgColor rgb='FFF2F2F2'/></patternFill></fill><fill><patternFill patternType='solid'><fgColor rgb='FFE2EFDA'/></patternFill></fill></fills>"
+      + "<borders count='1'><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count='1'><xf numFmtId='0' fontId='0' fillId='0' borderId='0'/></cellStyleXfs><cellXfs count='6'>"
+      + "<xf numFmtId='0' fontId='0' fillId='0' borderId='0' xfId='0' applyAlignment='1'><alignment vertical='top'/></xf>"
+      + "<xf numFmtId='0' fontId='1' fillId='2' borderId='0' xfId='0' applyFont='1' applyFill='1' applyAlignment='1'><alignment vertical='top'/></xf>"
+      + "<xf numFmtId='0' fontId='0' fillId='0' borderId='0' xfId='0' applyAlignment='1'><alignment wrapText='1' vertical='top'/></xf>"
+      + "<xf numFmtId='0' fontId='2' fillId='0' borderId='0' xfId='0' applyFont='1' applyAlignment='1'><alignment vertical='top'/></xf>"
+      + "<xf numFmtId='0' fontId='1' fillId='3' borderId='0' xfId='0' applyFont='1' applyFill='1' applyAlignment='1'><alignment vertical='top'/></xf>"
+      + "<xf numFmtId='0' fontId='1' fillId='0' borderId='0' xfId='0' applyFont='1' applyAlignment='1'><alignment wrapText='1' vertical='top'/></xf>"
+      + "</cellXfs><cellStyles count='1'><cellStyle name='Normal' xfId='0' builtinId='0'/></cellStyles></styleSheet>" });
+    sheets.forEach(function (s, i) { files.push({ name: "xl/worksheets/sheet" + (i + 1) + ".xml", data: sheetXml(s) }); });
+    return zipFiles(files);
+  }
+  // The workbook's content — every number comes from the same functions the dashboard draws with
+  var SURVEY_Q = [["class", "Which class are you in?"], ["background", "What did you do before Wharton?"], ["skills", "Which skills do you already have?"],
+    ["roles", "What roles are you aiming for after the MBA?"], ["industries", "Which industries interest you?"], ["topics", "Which topics do you want more of, even outside a major?"],
+    ["recruit_terms", "Which semesters will you be recruiting?"], ["frontload", "Do you want to front-load your core and flex core classes?"], ["majors", "Which majors are you exploring?"]];
+  var STATUS_TXT = { taken: "Taken", inprogress: "In progress" };
+  function decOf(c) { return S.plan[c] ? "Yes" : S.dec[c] === "no" ? "No" : "Maybe"; }   // same three columns as the Electives page
+  function coreDec(c) { return S.plan[c] ? "Yes" : S.dec[c] === "no" ? "No" : ""; }   // core is ticked, not Yes/Maybe/No — blank = not picked
+  function semOf(c) { var e = S.plan[c]; return !e ? "" : !e.term ? "Not scheduled" : e.term + (isSummer(e.term) ? "" : " · " + (e.slot === "Q1" || e.slot === "Q2" ? e.slot : "Full")); }
+  function stOf(c) { var e = S.plan[c]; return e ? STATUS_TXT[e.status] || "Not started" : ""; }
+  function offTxt(c) { var o = offered(c); return o ? o.join(", ") : ""; }
+  function countsTxt(c) {   // what the calendar chip's tags say this class counts toward
+    var a = assignment(), e = S.plan[c] || {}, out = [];
+    if (FIXED_CORE[c]) out.push("Core"); else if (coreSubs()[c]) out.push("Core (" + coreSubs()[c] + ")"); else if (FLEX_AREA[c] && !usedForMajor(c)) out.push("Flex core (" + FLEX_AREA[c] + ")");
+    if (e.own) return "Added by you";
+    majorsFor(c).forEach(function (m) { if (!a.set[c] || a.set[c].indexOf(m) >= 0) out.push(m); });
+    return out.length ? out.join(", ") : "Elective";
+  }
+  var DORD = { Yes: 0, Maybe: 1, No: 2 };
+  function byDecision(list) { return list.slice().sort(function (x, y) { return (DORD[decOf(x)] - DORD[decOf(y)]) || ((SCORE[y] || -99) - (SCORE[x] || -99)) || (x < y ? -1 : 1); }); }
+  function exportSheets() {
+    var H = function (arr) { return arr.map(function (t) { return { v: t, s: "h" }; }); }, sec = function (t) { return [{ v: t, s: "sec" }]; };
+    var today = new Date().toISOString().slice(0, 10), site = location.href.split("#")[0].replace(/board\.html.*$/, "");
+    var sheets = [], tt = 0, tp = 0, tin = 0, ttk = 0;
+    entries().forEach(function (e) { var cu = cuOf(e.code); if (started(e)) { tt += cu; if (e.status === "taken") ttk += cu; else tin += cu; } else tp += cu; });
+    var tot = tt + tp, core = coreState(), ms = majorState();
+    // 1 README
+    var rd = [[{ v: "README", s: "sec" }, { v: "", s: "sec" }],
+      [{ v: "What this is", s: "b" }, "This is my Wharton MBA course plan, exported from the Wharton Course Planner on " + usDate(today) + "."],
+      [{ v: "Using it with AI", s: "b" }, "If you ever use an AI tool (ChatGPT, Claude, Gemini) for planning, like weighing a class against recruiting or talking through your schedule, upload this file first. It hands over your whole plan in one go, so the AI starts on the same page as you instead of you re-explaining everything."],
+      [{ v: "For an AI reading this", s: "b" }, "This file is the student's plan from the Wharton Course Planner. Requirement status, double-counting and CU totals were calculated by the planner from Wharton's published rules. Use them as the student's current plan."],
+      [{ v: "Tabs", s: "b" }, "Survey responses: the student's answers · Summary: CU totals, core and major progress, double-counting · Schedule: every planned class by semester · Core and Flex: each core area and its classes · Major - …: one per major being explored, requirements checklist on top, then every class that counts toward it · Remaining Wharton classes: every other Wharton class."],
+      [{ v: "Columns", s: "b" }, "Decision = Yes (in the plan) / Maybe (not decided) / No (ruled out); on the Core and Flex tabs a blank means that option isn't picked. Status = Taken / In progress / Not started. Locked = fixed to that semester by the student; unlocked semesters are the planner's suggestion. Fit = Best fit / Good fit for this student's survey answers."],
+      [{ v: "Key rules", s: "b" }, "19 CU to graduate; tuition covers up to 21. A class can count toward at most 2 majors, and at most " + D.doubleCap.toFixed(1) + " CU in total can double-count."],
+      [{ v: "Caveat", s: "b" }, "Requirements change. Confirm on Wharton's official pages and in Course Match before enrolling. Semesters shown are suggestions."],
+      [], sec("Sources"),
+      ["Wharton MBA elective course list", { v: D.courseListUrl, s: "link" }]]
+      .concat(D.sources.map(function (s) { return [s[0], { v: s[1], s: "link" }]; }))
+      .concat(D.majorsMaster ? [["Wharton MBA majors list", { v: D.majorsMaster, s: "link" }]] : [])
+      .concat(explored.map(function (n) { return [n + " major requirements", { v: ALLM[n].source, s: "link" }]; }))
+      .concat([["Wharton Course Planner", { v: site, s: "link" }], [], ["Course list exported", usDate(D.exported)], ["Major requirements pulled", usDate(D.majorsPulled)]]);
+    sheets.push({ name: "README", widths: [34, 110], wrap: [1], rows: rd });
+    // 2 Survey responses
+    var sv = [H(["Question", "Answer"])];
+    SURVEY_Q.forEach(function (q) { var v = A[q[0]]; sv.push([q[1], Array.isArray(v) ? v.join(", ") : v || ""]); });
+    if (A.recruiting) sv.push(["Recruiting", A.recruiting]);
+    sv.push(["Recruiting semesters on the calendar", (S.recruitTerms || []).join(", ") || "None"]);
+    sv.push([], H(["Area", "How much I know now", "Where I want to end up"]));
+    Object.keys(Object.assign({}, A.depth_know || {}, A.depth_want || {})).forEach(function (k) { sv.push([k, (A.depth_know || {})[k] || "", (A.depth_want || {})[k] || ""]); });
+    sheets.push({ name: "Survey responses", widths: [52, 90, 24], wrap: [1], rows: sv });
+    // 3 Summary
+    var cHave = core.reduce(function (t, r) { return t + r.t + r.p; }, 0), cNeed = core.reduce(function (t, r) { return t + r.need; }, 0), du = dblUsed();
+    var sm = [sec("Totals"), H(["", "CU", "Notes"]),
+      ["Total planned", tot, tot > PAID + 1e-9 ? "Over the 21 CU covered by tuition: " + fmt(tot - PAID) + " CU you'd pay for" : tot >= GRAD - 1e-9 ? "19 needed to graduate · up to 21 covered by tuition" + (tot < PAID - 1e-9 ? " · room for " + fmt(PAID - tot) + " CU more" : "") : fmt(GRAD - tot) + " CU to go (19 needed to graduate)"],
+      ["Taken", ttk, ""], ["In progress", tin, ""], ["Not started", tp, ""],
+      [], sec("CU by semester"), H(["Semester", "CU", "Notes"])];
+    TERMS.forEach(function (t) { var cu = entries().filter(function (e) { return e.term === t; }).reduce(function (s, e) { return s + cuOf(e.code); }, 0);
+      sm.push([t, cu, [isSummer(t) ? "pre-term" : "", (S.recruitTerms || []).indexOf(t) >= 0 ? "recruiting" : "", cu > HEAVY ? "heavy" : ""].filter(Boolean).join(" · ")]); });
+    var uns = entries().filter(function (e) { return !e.term; }); if (uns.length) sm.push(["Not scheduled", uns.reduce(function (s, e) { return s + cuOf(e.code); }, 0), uns.map(function (e) { return e.code; }).join(", ")]);
+    sm.push([], sec("Core"), H(["", "CU", "Still open"]), ["Core & flex", fmt(cHave) + " of " + fmt(cNeed), ""]);
+    core.forEach(function (r) { sm.push([r.name, fmt(r.t + r.p) + " of " + fmt(r.need) + (r.extra ? " · " + r.extra : ""), r.open.join(", ") || "Covered"]); });
+    if (ms.rows.length) { sm.push([], sec("Majors"), H(["Major", "CU", "Still open"]));
+      ms.rows.forEach(function (r) { sm.push([r.name, fmt(r.t + r.p) + " of " + fmt(r.need), r.open.join(", ") || "Met"]); }); }
+    if (ms.rows.length > 1) {
+      var a = assignment();
+      sm.push([], sec("Double-counting: " + fmt(du) + " of " + D.doubleCap.toFixed(1) + " CU used" + (du > D.doubleCap + 1e-9 ? " (over Wharton's limit)" : "")), H(["Class", "CU", "Counts toward"]));
+      Object.keys(a.set).filter(function (c) { return a.set[c].length > 1; }).sort().forEach(function (c) { sm.push([c + " " + (BY[c] ? BY[c].title : ""), cuOf(c), a.set[c].join(" + ") + (a.manual[c] ? " (your choice)" : "")]); });
+      couldDouble().forEach(function (c) { sm.push([c + " " + (BY[c] ? BY[c].title : ""), cuOf(c), "Could count toward " + dblMajors(c).slice(0, 2).join(" + ") + " but counts toward one"]); });
+      if (!Object.keys(a.set).some(function (c) { return a.set[c].length > 1; }) && !couldDouble().length) sm.push(["No classes count twice yet", "", ""]);
+    }
+    sheets.push({ name: "Summary", widths: [48, 14, 80], wrap: [2], rows: sm });
+    // 4 Schedule
+    var SLOT = { Full: 0, Q1: 1, Q2: 2 };
+    var sch = [H(["Semester", "Slot", "Code", "Title", "CU", "Status", "Locked", "Counts toward", "Notes"])];
+    entries().sort(function (x, y) { var a1 = x.term ? TERMS.indexOf(x.term) : 99, b1 = y.term ? TERMS.indexOf(y.term) : 99;
+      return (a1 - b1) || ((SLOT[x.slot === "Q1" || x.slot === "Q2" ? x.slot : "Full"]) - (SLOT[y.slot === "Q1" || y.slot === "Q2" ? y.slot : "Full"])) || (x.code < y.code ? -1 : 1); })
+      .forEach(function (e) { var c = e.code;
+        sch.push([e.term || "Not scheduled", !e.term ? "" : isSummer(e.term) ? "Pre-term" : e.slot === "Q1" || e.slot === "Q2" ? e.slot : "Full", e.own ? e.shown || "" : c, e.own || e.missing ? e.title : BY[c] ? BY[c].title : "",
+          cuOf(c), stOf(c), e.locked ? "Yes" : "No", countsTxt(c),
+          [e.missing ? "Not in this year's course list" : "", offTerm(c, e.term) ? "Usually offered " + offered(c)[0] : ""].filter(Boolean).join(" · ")]); });
+    sheets.push({ name: "Schedule", widths: [14, 9, 12, 44, 6, 13, 8, 40, 30], freeze: true, rows: sch });
+    // 5–6 Core and Flex
+    D.core.forEach(function (s) {
+      var fixed = /fixed/i.test(s.section), rows = [H(["Area", "Rule", "Your choice", "Area status", "Code", "Title", "CU", "Decision", "Semester", "Status", "Note"])];
+      s.areas.forEach(function (a) {
+        var x = coreArea(a), choice = !x.st ? "Not chosen" : x.st === "take" ? "Take" : x.st === "waived" ? "Waived" : x.r.placement ? "Placement" : "Substituted";
+        var ol = x.opts.length ? x.opts : [{ code: "", title: "", cu: "", note: "" }];
+        ol.forEach(function (o, i) { var c = o.code;
+          rows.push(i ? ["", "", "", ""] .concat([c, o.title, o.cu, c ? coreDec(c) : "", c ? semOf(c) : "", c ? stOf(c) : "", [o.note, c && usedForMajor(c) ? "counting for " + noFlexMajors(c).join(" + ") + " instead" : ""].filter(Boolean).join(" · ")])
+            : [a.name, a.rule, choice, x.status.replace(/^✓ /, "").replace(/^⚠ /, "")].concat([c, o.title, o.cu, c ? coreDec(c) : "", c ? semOf(c) : "", c ? stOf(c) : "", [o.note, c && usedForMajor(c) ? "counting for " + noFlexMajors(c).join(" + ") + " instead" : ""].filter(Boolean).join(" · ")])); });
+      });
+      sheets.push({ name: fixed ? "Core" : "Flex", widths: [30, 16, 13, 30, 12, 44, 6, 9, 16, 12, 40], freeze: true, rows: rows });
+    });
+    // 7+ one tab per major
+    var used = {};
+    explored.forEach(function (n) {
+      var m = ALLM[n], nm = ("Major - " + n).length <= 31 ? "Major - " + n : ("Major - " + (m.short || n)).slice(0, 31);
+      while (used[nm]) nm = nm.slice(0, 29) + " " + (Object.keys(used).length + 1); used[nm] = 1;
+      var rows = [[{ v: n + (m.total ? " · " + fmt(m.total) + " CU" : ""), s: "sec" }], [{ v: "Requirements page", s: "b" }, { v: m.source, s: "link" }]];
+      if (m.total) {
+        var r = majorProgress(m), a = assignment();
+        rows.push([{ v: "Progress", s: "b" }, fmt(r.t + r.p) + " of " + fmt(m.total) + " CU" + (r.open.length ? " · still open: " + r.open.join(", ") : " · met")]);
+        rows.push([], H(["Requirement", "Needed (CU)", "Have (CU)", "Status", "Classes counting"]));
+        reqOf(m).forEach(function (c) { var on = S.plan[c] && countsFor(c, n);
+          rows.push(["Required: " + c + " " + (BY[c] ? BY[c].title : ""), BY[c] ? BY[c].cu : 1, on ? cuOf(c) : 0, on ? (started(S.plan[c]) ? STATUS_TXT[S.plan[c].status] : "Planned") : "Still needed", on ? c : ""]); });
+        if (m.core_one_of) { var co = Object.keys(S.plan).filter(function (c) { return listed(c, m.core_one_of); });
+          rows.push(["One of: " + m.core_one_of.join(", "), 0.5, co.length ? cuOf(co[0]) : 0, co.length ? "Planned" : "Still needed", co[0] || ""]); }
+        r.groups.forEach(function (x) { var g = x.g;
+          rows.push([g.label, g.min || "", x.have, g.min ? (x.have >= g.min - 1e-9 ? (x.taken >= g.min - 1e-9 ? "Met (taken)" : "Met (planned)") : fmt(g.min - x.have) + " CU still needed") : "Counts toward the total",
+            x.picked.join(", ")]); });
+        (m.checks || []).forEach(function (k) { rows.push(["Also requires: " + k.label, "", "", checkMet(k) ? "Met" : "Still needed", ""]); });
+        if (r.unused > 1e-9) rows.push(["Extra CU beyond what this major can count", "", fmt(r.unused), "Not counted", ""]);
+      } else rows.push([{ v: "Note", s: "b" }, "This major has no fixed CU total in the planner — see its requirements page."]);
+      if (m.rules) rows.push([{ v: "Rules", s: "b" }, m.rules]);
+      (m.enforced || []).forEach(function (x) { rows.push([{ v: "Rule", s: "b" }, x.text]); });
+      if ((m.notOffered || []).length) rows.push([{ v: "Not offered this year", s: "b" }, m.notOffered.join(", ")]);
+      rows.push([], H(["Code", "Title", "CU", "Decision", "Fit", "Semester", "Status", "Counts toward this major", "Also counts toward", "Usually offered", "Description"]));
+      var a2 = assignment();
+      byDecision(Object.keys(BY).filter(function (c) { return eligible(c, m); })).forEach(function (c) {
+        var k = BY[c], on = !!S.plan[c], cnt = on ? (a2.set[c] ? (a2.set[c].indexOf(n) >= 0 ? "Yes" : "No — counts toward " + a2.set[c].join(" + ")) : "Yes") : "";
+        rows.push([c, k.title, k.cu, decOf(c), LABEL[c] || "", semOf(c), stOf(c), cnt, majorsFor(c).filter(function (x) { return x !== n; }).join(", "), offTxt(c), k.summary || ""]); });
+      sheets.push({ name: nm, widths: [44, 44, 11, 18, 22, 16, 12, 26, 30, 14, 70], wrap: [0, 4, 10], rows: rows });
+    });
+    // last: Remaining Wharton classes — everything not on a Core, Flex or Major tab, plus classes the student added
+    var rem = [H(["Code", "Title", "CU", "Decision", "Fit", "Semester", "Status", "Usually offered", "Description"])];
+    entries().filter(function (e) { return e.own || e.missing; }).forEach(function (e) {
+      rem.push([e.own ? e.shown || "" : e.code, e.title, cuOf(e.code), "Yes", "", semOf(e.code), stOf(e.code), "", e.own ? "Added by the student — not on Wharton's list" : "Not in this year's course list"]); });
+    byDecision(Object.keys(BY).filter(function (c) { return !CORE_CODES[c] && !majorsFor(c).length; })).forEach(function (c) {
+      var k = BY[c]; rem.push([c, k.title, k.cu, decOf(c), LABEL[c] || "", semOf(c), stOf(c), offTxt(c), k.summary || ""]); });
+    sheets.push({ name: "Remaining Wharton classes", widths: [12, 50, 6, 9, 10, 16, 12, 14, 80], wrap: [8], freeze: true, rows: rem });
+    return sheets;
+  }
+  function exportXlsx() {
+    try {
+      var blob = workbook(exportSheets()), url = URL.createObjectURL(blob), a = document.createElement("a");
+      a.href = url; a.download = "wharton-plan-" + new Date().toISOString().slice(0, 10) + ".xlsx";
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      var old = document.querySelector(".toast"); if (old) old.remove();
+      var o = document.createElement("div"); o.className = "toast"; o.innerHTML = "⬇ Downloaded. Open the <b>README</b> tab for how to use it with AI.";
+      document.body.appendChild(o); setTimeout(function () { o.classList.add("bye"); setTimeout(function () { o.remove(); }, 400); }, 4000);
+      countEvent("export", "Exported to Excel");
+    } catch (err) { popup("Export didn't work", "Something went wrong building the file. Please use Feedback to let us know which browser you're on."); }
+  }
+  window.__wcpExport = exportSheets;   // lets the tests read the workbook's content
   function popup(title, text) {
     var o = document.createElement("div");
     o.className = "pop-o"; o.innerHTML = "<div class='pop'><b>" + esc(title) + "</b><p>" + esc(text) + "</p><button>Got it</button></div>";
