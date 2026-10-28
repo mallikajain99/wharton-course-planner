@@ -169,6 +169,73 @@ test("Electives page shows the Total card: same total as the Overview, CU and cl
   await expect(page.locator(".ehead .kpi.mini b")).not.toHaveText(total);
 });
 
+test("Maybe shows every recommendation, tops up to 20 only when fewer are left, and one click shows the rest", async ({ page }) => {
+  await board(page, P("x-five-majors"), "#electives");
+  const cards = page.locator(".col:nth-child(2) .card[data-code]");
+  const info = await page.evaluate(() => { const L = window.__wcp.LABEL, S = window.__wcp.S;
+    const rec = Object.keys(L).filter(c => L[c] && !S.plan[c] && S.dec[c] !== "no"); return { rec }; });
+  const total = Number(await page.locator(".col:nth-child(2) h3 .ct").innerText().then(t => t.match(/\d+/)[0]));
+  expect(await cards.count()).toBe(Math.max(info.rec.length, 20));                         // all recommended, nothing extra
+  await expect(page.locator(".col:nth-child(2) .ct")).toContainText("recommended");
+  // decide all but 5 recommendations → 5 recommended + 15 others = 20
+  await page.evaluate(keep => { const S = window.__wcp.S, L = window.__wcp.LABEL;
+    Object.keys(L).filter(c => L[c] && !S.plan[c]).slice(keep).forEach(c => { S.dec[c] = "no"; }); window.__wcp.fresh(); window.__wcp.render(); }, 5);
+  await expect(cards).toHaveCount(20);
+  await expect(page.locator(".col:nth-child(2) .mdiv")).toHaveText(/Other Wharton classes/i);
+  // decide them all → 20 others with "Show the rest"; one click shows every remaining class
+  await page.evaluate(() => { const S = window.__wcp.S, L = window.__wcp.LABEL;
+    Object.keys(L).filter(c => L[c] && !S.plan[c]).forEach(c => { S.dec[c] = "no"; }); window.__wcp.fresh(); window.__wcp.render(); });
+  await expect(cards).toHaveCount(20);
+  await expect(page.locator(".col:nth-child(2) .colsub")).toContainText("decided on all your recommendations");
+  const rest = page.locator("[data-others]");
+  await expect(rest).toContainText("Show the rest");
+  await rest.click();
+  const left = Number((await page.locator(".col:nth-child(2) h3 .ct").innerText()).match(/\d+/)[0]);
+  await expect(cards).toHaveCount(left);
+  await expect(page.locator("[data-others], .col:nth-child(2) [data-more]")).toHaveCount(0);   // no "show more" steps
+  expect(total).toBeGreaterThan(20);
+});
+
+test("Maybe: search looks through every class, not just recommendations", async ({ page }) => {
+  await board(page, P("x-five-majors"), "#electives");
+  const other = await page.evaluate(() => { const L = window.__wcp.LABEL; return Object.keys(window.__wcp.SCORE).find(c => !L[c] && !window.__wcp.CORE_CODES[c]); });
+  await expect(page.locator(`.col:nth-child(2) .card[data-code='${other}']`)).toHaveCount(0);
+  await page.fill("#q", other);
+  await expect(page.locator(`.col:nth-child(2) .card[data-code='${other}']`)).toHaveCount(1);
+});
+
+test("wide screens: page content reaches the right edge like the top bar (no white space)", async ({ page }, info) => {
+  test.skip(info.project.name === "phone", "laptop widths only");
+  await board(page, P("x-five-majors"), "#overview");
+  for (const w of [1512, 1728, 2048]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    const [app, top] = await page.evaluate(() => [document.querySelector("#app").getBoundingClientRect().right, document.querySelector(".top").getBoundingClientRect().right]);
+    expect(Math.abs(app - top)).toBeLessThan(2);
+    expect(app).toBeGreaterThan(w - 2);
+  }
+});
+
+test("phone: Next floats above the tab bar while scrolling; laptop keeps it at the bottom", async ({ page }, info) => {
+  await board(page, P("x-five-majors"), "#electives");
+  const pos = await page.locator(".next").evaluate(e => getComputedStyle(e).position);
+  if (info.project.name === "phone") {
+    expect(pos).toBe("fixed");
+    await page.mouse.wheel(0, 1500);
+    await expect(page.locator(".next a")).toBeInViewport();
+  } else expect(pos).not.toBe("fixed");
+});
+
+test("Electives Total card over 19 behaves like the Overview (teal 19–21, red over 21)", async ({ page }) => {
+  await board(page, P("x-five-majors"), "#calendar");
+  for (let i = 0; i < 22; i++) await page.locator("[data-addplan]").first().click();
+  await view(page, "electives");
+  for (let i = 0; i < 8; i++) await page.locator(".board .col:nth-child(2) .card [data-decide='yes']").first().click();
+  const mini = await page.locator(".ehead .kpi.mini").innerText();
+  expect(mini).toMatch(/up to 21 covered|you'd pay for/);                          // past 19
+  await view(page, "overview");
+  expect(await page.locator(".kpi.hero").innerText()).toBe(mini);                  // identical to the Overview card
+});
+
 test("add a major from the Majors page", async ({ page }) => {
   await board(page, P("x-no-majors"), "#majors");
   await expect(page.locator(".cg[data-major]")).toHaveCount(0);

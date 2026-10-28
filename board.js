@@ -777,9 +777,18 @@
       + own.map(function (e) { return "<div class='card own'><div class='mvs'><button class='mv' data-delown='" + esc(e.code) + "' title='Delete'>✕</button></div><div class='reason'>Added by you</div><div class='t'>" + esc(e.shown ? e.shown + " " : "") + esc(e.title) + "</div><div class='meta'><span class='cu'>" + fmt(e.cu) + " CU</span></div><div class='nt'>Not on Wharton's list, so it counts toward no major.</div></div>"; }).join("")
       + yes.filter(match).map(function (c) { return card(c, "yes"); }).join("") + "</div>";
     var mshow = maybe.filter(match);
-    h += "<div class='col'><h3>? Maybe <span class='ct'>" + maybe.length + "</span></h3><div class='colsub'>best match first</div>"
-      + mshow.slice(0, ui.maybeMore).map(function (c) { return card(c, "maybe"); }).join("")
-      + (mshow.length > ui.maybeMore ? "<button class='seemore' data-more='1'>Show more (" + (mshow.length - ui.maybeMore) + ")</button>" : "") + "</div>";
+    //
+    // design/mockup-maybe-recommended.html). Every undecided Best/Good fit shows; only when fewer than 20 are left do other
+    // classes top it up to 20. The rest wait behind "Show all other classes available". Search always looks at everything.
+    var rec = mshow.filter(function (c) { return LABEL[c]; }), oth = mshow.filter(function (c) { return !LABEL[c]; });
+    var open = ui.othersOpen || !!ui.q, top = Math.max(0, 20 - rec.length);
+    var list = open ? rec.concat(oth) : rec.concat(oth.slice(0, top)), hidden = open ? 0 : Math.max(0, oth.length - top);
+    var cards = list.map(function (c, i) {   // one click shows all the rest — no "show 20 more" steps
+      return (i === rec.length && rec.length && i < list.length ? "<div class='mdiv'>Other Wharton classes</div>" : "") + card(c, "maybe"); }).join("");
+    h += "<div class='col'><h3>? Maybe <span class='ct'>" + (open || !rec.length ? maybe.length : rec.length + " recommended") + "</span></h3><div class='colsub'>"
+      + (ui.q ? "every class matching your search" : rec.length ? "Best fit and Good fit for you first" : mshow.length ? "You've decided on all your recommendations. Here are other Wharton classes." : "") + "</div>"
+      + cards
+      + (hidden ? "<button class='seemore others' data-others='1'>" + (rec.length ? "Show all other classes available" : "Show the rest") + "<small>" + hidden + " more Wharton class" + (hidden > 1 ? "es" : "") + "</small></button>" : "") + "</div>";
     h += "<div class='col no'><h3>✕ No <span class='ct'>" + no.length + "</span></h3><div class='colsub'>classes you ruled out</div>"
       + (ui.noOpen ? no.filter(match).map(function (c) { return card(c, "no"); }).join("") : "")
       + (no.length ? "<button class='seemore' data-noopen='1'>" + (ui.noOpen ? "Hide" : "Show") + "</button>" : "") + "</div>";
@@ -1048,7 +1057,7 @@
     S.changes += 1; placeNew(); commit();
   });
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall],[data-rmcal],[data-export]");
+    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall],[data-rmcal],[data-export],[data-others]");
     if (!b) return;
     var d = b.dataset;
     if (d.decide) {
@@ -1061,6 +1070,7 @@
     }
     if (d.filter) { ui.filter = d.filter; ui.maybeMore = 60; return render(); }
     if (d.more) { ui.maybeMore += 60; return render(); }
+    if (d.others) { ui.othersOpen = true; return render(); }   // stays open while they're on the page
     if (d.noopen) { ui.noOpen = !ui.noOpen; return render(); }
     if (d.lock) { e.preventDefault(); var en = S.plan[d.lock]; en.locked = !en.locked; delete en.autoLock; return commit(); }   //
     if (d.resuggest) { resuggest(); return commit(); }

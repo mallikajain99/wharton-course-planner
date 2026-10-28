@@ -34,13 +34,14 @@ button:focus:not(:focus-visible){outline:none}
 .theme button{border:0;border-radius:0;padding:7px 11px}
 .theme button.on{background:var(--acc);color:var(--onacc)}
 .pv{font-size:12px;color:var(--muted)}
-#app{padding:8px 30px 40px;max-width:1400px}
+#app{padding:8px 30px 40px}
 h2{font-size:28px;letter-spacing:-.5px;margin:6px 0 6px}
 .sub{color:var(--ink2);font-size:14px;margin:0 0 16px}
 .nt{font-size:12px;color:var(--muted);margin:2px 0}
 .next{display:flex;justify-content:flex-end;margin:26px 0 0}
 .pri,.next a{font:inherit;font-weight:800;font-size:14px;padding:11px 20px;border-radius:12px;background:var(--acc);color:var(--onacc);border:0;text-decoration:none;cursor:pointer}
 .pri:hover,.next a:hover{filter:brightness(1.08)}
+@media(max-width:760px){.next{position:fixed;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));margin:0;z-index:25}.next a{border-radius:999px;box-shadow:0 8px 20px rgba(0,0,0,.25);padding:10px 16px;font-size:13px}body:has(.toast) .next,body:has(.updnote) .next{display:none}}
 /* overview */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:8px 0 16px}
 .kpis.majrow{margin-top:-2px}
@@ -124,6 +125,8 @@ h2{font-size:28px;letter-spacing:-.5px;margin:6px 0 6px}
 .ownin{font:inherit;font-size:13px;padding:7px 10px;border:1.5px solid var(--rule);border-radius:10px;background:var(--card);color:var(--ink)}
 #own-code{width:110px}#own-title{flex:1;min-width:150px}
 .seemore{width:100%;font:inherit;font-size:13px;font-weight:700;padding:9px;border:1.5px dashed var(--rule);border-radius:12px;background:transparent;color:var(--ink2);cursor:pointer}
+.seemore.others{border-color:color-mix(in srgb,var(--acc) 55%,transparent);background:var(--card);color:var(--acc);font-weight:800;padding:11px}.seemore.others small{display:block;font-weight:600;color:var(--muted);font-size:11.5px}
+.mdiv{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 8px}.mdiv:before,.mdiv:after{content:"";flex:1;border-top:1px solid var(--rule)}
 /* calendar */
 .nudge{display:inline-block;font-size:12.5px;background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber);border-radius:10px;padding:5px 10px}
 .rec{font-size:11px;font-weight:700;color:var(--amber)}
