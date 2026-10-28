@@ -745,3 +745,28 @@ test("status back to Not started unlocks — unless the class was locked by hand
   for (let i = 0; i < 3; i++) await page.locator(`[data-status='${b}']`).click();
   expect(await locked(b)).toBe(true);
 });
+
+test("total over 19 shows the teal overfill; over 21 turns red with a warning in What's left and on the Calendar", async ({ page }) => {
+  await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028" }), "#overview");
+  const fill = n => page.evaluate(n => { const P = window.__wcp; Object.keys(P.LABEL).filter(c => !P.S.plan[c]).slice(0, 40).forEach(c => { if (Object.keys(P.S.plan).reduce((t, k) => t + P.cuOf(k), 0) < n) P.addToPlan(c); }); P.render(); }, n);
+  await fill(19.5);
+  const t1 = await page.evaluate(() => Object.keys(window.__wcp.S.plan).reduce((t, k) => t + window.__wcp.cuOf(k), 0));
+  if (t1 > 19 && t1 <= 21) { await expect(page.locator(".kpi.hero")).toContainText("up to 21 covered"); await expect(page.locator(".kpi.hero .captag.ok")).toBeVisible(); }
+  await fill(22);
+  await expect(page.locator(".kpi.hero.capbad")).toBeVisible();
+  await expect(page.locator(".kpi.hero .captag.bad")).toContainText("you'd pay for");
+  await expect(page.locator(".left .todo").first()).toContainText("over the 21 CU tuition covers");
+  await view(page, "calendar");
+  await expect(page.locator(".capwarn2")).toContainText("over the 21 CU tuition covers");
+});
+
+test("overview calendar: unlocked classes are dashed, locked ones solid", async ({ page }) => {
+  await board(page, P("q02-03"), "#electives");
+  for (let i = 0; i < 2; i++) await page.locator(".col:nth-child(2) .card[data-code]").first().locator("[data-decide='yes']").click();
+  await view(page, "calendar");
+  const code = await page.locator(".cal [data-chip]").first().getAttribute("data-chip");
+  await page.locator(`[data-chip='${code}'] [data-lock]`).click();
+  await view(page, "overview");
+  expect(await page.locator(".oc.unl").count()).toBeGreaterThan(0);
+  expect(await page.locator(".oc:not(.unl)").count()).toBeGreaterThan(0);
+});

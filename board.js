@@ -167,7 +167,7 @@
     entries().forEach(function (e) {
       var pinned = (FIXED_CORE[e.code] || e.code === "MGMT 6100") && !e.locked && !started(e) && !(e.moved && !full);   // always re-placed by the first-year rule
       if (!pinned && ((e.term && started(e)) || e.locked || (!full && e.term))) fixed[e.code] = [e.term, e.slot || "Full"];
-      else if (full || e.why !== "parked") todo.push(e);
+      else todo.push(e);   // every class gets a semester — "Needs a semester" was dropped
     });
     var load = {};
     // flex core may also go in the first fall, after fixed core; other classes start with FUTURE
@@ -808,6 +808,8 @@
       + (explored.length > 1 ? "<span class='dbl'>Double-counted <b>" + fmt(dblUsed()) + "</b> of 2.0 CU</span>" : "<span class='dbl'></span>")
       + "<button class='resugbtn' data-resuggest='1'>↻ Re-suggest</button></div>"
       + (S.changes >= 3 ? "<div class='nudge'>You've added or removed " + S.changes + " classes since the last full suggestion — Re-suggest for a fresh layout. Locked classes won't move.</div>" : "");
+    var allCU2 = es.reduce(function (t, e) { return t + cuOf(e.code); }, 0);
+    if (allCU2 > PAID + 1e-9) h += "<div class='capwarn2'>⚠ " + fmt(allCU2) + " CU planned — over the 21 CU tuition covers. " + fmt(allCU2 - PAID) + " CU you'd pay for.</div>";
     h += "<div class='cal3'><div class='cal rows3'>";
     TERMS.forEach(function (t) {
       var tcu = 0, nq = 0;
@@ -827,9 +829,7 @@
         + "<div class='band slot' data-term=\"" + esc(t) + "\" data-slot='Q2'><div class='lh3'>Q2</div><div class='chips3'>" + lane(["Q2"]) + "</div></div></div>";
       h += "</div></div>";
     });
-    var un = es.filter(function (e) { return !e.term; });
-    h += "</div><div class='need tray slot' data-term='' data-slot=''><h4>Needs a semester <small>" + fmt(un.reduce(function (t, e) { return t + cuOf(e.code); }, 0)) + " CU</small></h4>"
-      + (un.length ? "<p>Drag onto the calendar</p>" + un.map(chip).join("") : "<p>None — everything has a semester</p>") + "</div></div>";
+    h += "</div></div>";
     return h + calMajors();
   }
   var STATUS = { "": ["", "Not started", "Mark as in progress"], inprogress: ["◐", "In progress", "Mark as taken"], taken: ["✓", "Taken", "Mark as not started"] };
@@ -898,6 +898,18 @@
     pct = Math.max(0, Math.min(100, pct));
     return "<div class='dn' style='background:conic-gradient(" + color + " 0 " + pct + "%," + (rest || "var(--soft)") + " 0)'><i>" + label + "</i></div>";
   }
+  // 19 CU to graduate; tuition covers up to 21. Over 19 the ring is full and a teal outer ring fills
+  // across the 2 covered CU; over 21 it turns red with "N CU you'd pay for". Approved mockup: design/mockup-total-cap.html
+  var GRAD = 19, PAID = 21;
+  function totalCard(tot, pct) {
+    if (tot <= GRAD + 1e-9) return "<a class='kpi hero' href='#calendar'>" + ring(pct, "#fff", Math.round(pct) + "%", "rgba(255,255,255,.22)") + "<div><small>Total planned</small><b>" + fmt(tot) + " / 19</b><small>"
+      + (tot >= GRAD - 1e-9 ? "all 19 CU planned" : fmt(GRAD - tot) + " CU to go") + "</small></div></a>";
+    var over = tot > PAID + 1e-9, extra = Math.min(100, 100 * (tot - GRAD) / (PAID - GRAD));
+    var outer = over ? "conic-gradient(var(--red) 0 100%,transparent 0)" : "conic-gradient(#2dd4bf 0 " + extra + "%,rgba(255,255,255,.18) 0)";
+    return "<a class='kpi hero" + (over ? " capbad" : "") + "' href='#calendar'><div class='ring2'><div class='outer' style='background:" + outer + "'></div><div class='dn inner' style='background:#fff'><i style='background:var(--acc)'>" + Math.round(pct) + "%</i></div></div>"
+      + "<div><small>Total planned</small><b>" + fmt(tot) + " / 19</b><small>" + (over ? "⚠ Over the 21 CU covered" : "+" + fmt(tot - GRAD) + " CU · up to 21 covered") + "</small>"
+      + (over ? "<span class='captag bad'>" + fmt(tot - PAID) + " CU you'd pay for</span>" : "<span class='captag ok'>" + (tot >= PAID - 1e-9 ? "At the 21 CU limit" : "Room for " + fmt(PAID - tot) + " CU more") + "</span>") + "</div></a>";
+  }
   function overviewView() {
     var core = coreState(), ms = majorState(), tt = 0, tp = 0;
     entries().forEach(function (e) { if (started(e)) tt += cuOf(e.code); else tp += cuOf(e.code); });
@@ -907,8 +919,7 @@
     //
     var cpct = cNeed ? 100 * cHave / cNeed : 0;
     h += "<div class='kpis'>"
-      + "<a class='kpi hero' href='#calendar'>" + ring(pct, "#fff", Math.round(pct) + "%", "rgba(255,255,255,.22)") + "<div><small>Total planned</small><b>" + fmt(tot) + " / 19</b><small>"
-        + (tot >= 19 ? "all 19 CU planned" : fmt(19 - tot) + " CU to go") + "</small></div></a>"
+      + totalCard(tot, pct)
       + "<a class='kpi' href='#core'>" + ring(cpct, "var(--teal)", Math.round(cpct) + "%") + "<div><small>Core</small><b>" + fmt(cHave) + " / " + fmt(cNeed) + "</b><small>"
         + core.filter(function (r) { return r.open.length; }).length + " still open</small></div></a>";
     if (ms.rows.length > 1) { var du = dblUsed();
@@ -927,7 +938,7 @@
     // compact, read-only calendar (approved mockup): Summer one box; others Full on top, Q1 | Q2 underneath
     var es = entries(), ochip = function (e) {
       var k = BY[e.code], st = e.status === "taken" ? "<span class='st'>✓</span>" : e.status === "inprogress" ? "<span class='st'>◐</span>" : "";
-      return "<div class='oc c-" + catOf(e.code) + "'><b>" + esc(e.own ? (e.shown || "Own") : e.code) + "</b><span>" + esc(e.own || e.missing ? e.title : k ? k.title : "") + "</span><em>" + fmt(cuOf(e.code)) + "</em>" + st + "</div>"; };
+      return "<div class='oc c-" + catOf(e.code) + (e.locked || started(e) ? "" : " unl") + "'><b>" + esc(e.own ? (e.shown || "Own") : e.code) + "</b><span>" + esc(e.own || e.missing ? e.title : k ? k.title : "") + "</span><em>" + fmt(cuOf(e.code)) + "</em>" + st + "</div>"; };
     h += "<div class='mini'><div class='mh'><b>Your calendar</b><span class='sp'></span><a href='#calendar'>Edit →</a></div><div class='ocal' style='grid-template-columns:repeat(" + TERMS.length + ",minmax(0,1fr))'>";
     TERMS.forEach(function (t) {
       var inT = es.filter(function (e) { return e.term === t; }), cu = inT.reduce(function (s2, e) { return s2 + cuOf(e.code); }, 0);
@@ -944,6 +955,8 @@
   // "What's left" (approved mockup): the biggest gaps, most important first, each linking to where it gets fixed
   function whatsLeft() {
     var items = [], core = coreState(), opens = [];
+    var allCU = entries().reduce(function (t, e) { return t + cuOf(e.code); }, 0);
+    if (allCU > PAID + 1e-9) items.push(["Credits", fmt(allCU - PAID) + " CU over the 21 CU tuition covers — you'd pay for the extra", "calendar", "Calendar"]);
     core.forEach(function (r) { opens = opens.concat(r.open); });
     if (opens.length) items.push(["Core", opens.slice(0, 2).join(", ") + (opens.length > 2 ? " and " + (opens.length - 2) + " more area" + (opens.length > 3 ? "s" : "") : "") + " still open", "core", "Core"]);
     explored.forEach(function (n) {
