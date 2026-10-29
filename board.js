@@ -532,6 +532,7 @@
   function whenSelect(c) {
     var e = S.plan[c], cur = (e.term || "") + "|" + (e.slot || ""), opts = [];
     TERMS.forEach(function (t) {
+      if (isSummer(t) !== (c === "MGMT 6100")) return;   // pre-term runs only MGMT 6100, and MGMT 6100 runs only then
       (isSummer(t) ? ["Summer"] : ["Full", "Q1", "Q2"]).forEach(function (sl) {
         if (!slotOk(c, sl === "Summer" ? null : sl)) return;
         var v = t + "|" + (sl === "Summer" ? "" : sl), cv = cur === t + "|Summer" ? t + "|" : cur;
@@ -1159,6 +1160,10 @@
     var s = dragCode && e.target.closest && e.target.closest(".slot"); if (!s) return;
     e.preventDefault();
     var en = S.plan[dragCode], slot = s.dataset.slot || null;
+    if (isSummer(s.dataset.term) !== (dragCode === "MGMT 6100")) {   // same rule as the Core page's semester picker
+      popup("Can't place that there", dragCode === "MGMT 6100" ? "MGMT 6100 only runs in the summer pre-term." : "Only MGMT 6100 runs in the summer pre-term.");
+      dragCode = null; return;
+    }
     if (!slotOk(dragCode, slot)) {
       var cu = cuOf(dragCode);
       popup("Can't place that there", cu >= 1 ? "It's a full-credit (" + fmt(cu) + " CU) class, so it runs the whole semester — use the Full semester column."

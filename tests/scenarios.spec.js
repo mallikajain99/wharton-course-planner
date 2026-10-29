@@ -265,6 +265,18 @@ test("Core table: tiles count areas, Needs action filter, semester picker moves 
   await expect(page.locator(".cal [data-chip='ACCT 6110'] .stb")).toContainText("In progress");   // same status everywhere
 });
 
+test("pre-term: MGMT 6100 is offered only the summer, every other class never the summer", async ({ page }) => {
+  await board(page, Object.assign({}, P("x-five-majors"), { class: "Class of 2028" }), "#core");
+  await page.locator("label:has(input[data-core='Leadership'][value='take'])").click();
+  await page.locator("input[data-pick='MGMT 6100']").check();
+  await page.locator("label:has(input[data-core='Accounting'][value='take'])").click();
+  await page.locator("input[data-pick='ACCT 6110']").check();
+  expect(await page.locator("select[data-when='MGMT 6100'] option").allInnerTexts()).toEqual(["Summer '26"]);
+  await expect(page.locator(".copt.on", { hasText: "MGMT 6100" })).toContainText("suggested");
+  const acct = await page.locator("select[data-when='ACCT 6110'] option").allInnerTexts();
+  expect(acct.some(t => /Summer/.test(t))).toBe(false);
+});
+
 test("add a major from the Majors page", async ({ page }) => {
   await board(page, P("x-no-majors"), "#majors");
   await expect(page.locator(".cg[data-major]")).toHaveCount(0);
