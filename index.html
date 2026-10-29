@@ -76,6 +76,12 @@ button:focus:not(:focus-visible){outline:none}
 .how li i{font-style:normal;width:34px;height:34px;border-radius:10px;background:var(--acc);color:var(--onacc);display:grid;place-items:center;font-weight:900;flex:none}
 .how li b{display:block;font-size:16px}.how li span{color:var(--muted);font-size:14px}
 .intro .privacy{color:var(--muted);font-size:12.5px}
+/* laptop: steps on the left, a picture of the result on the right (approved Oct 29 — design/welcome-full-laptop.png); phones: no picture */
+.intro.split{max-width:1320px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:48px;align-items:start}
+.intro.split .pv{position:sticky;top:24px;padding-top:12px}.pv figure{margin:0}
+.pv img{width:100%;display:block;border-radius:14px;border:1px solid var(--rule);box-shadow:0 18px 40px rgba(22,20,43,.16)}
+.pv figcaption{font-weight:800;font-size:14px;color:var(--ink2);margin:12px 2px 0}.pv figcaption small{display:block;font-weight:600;color:var(--muted)}
+@media(max-width:900px){.intro.split{display:block;max-width:680px}.intro.split .pv{display:none}}
 .grid .mo{display:none}
 /* theme switch — same setting as the board (wcp.theme) */
 .themesw{position:fixed;top:14px;right:16px;z-index:30;display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
@@ -143,7 +149,7 @@ PARTS.forEach(function(p,pi){ p.qs.forEach(function(q){ QS.push({q:q,pi:pi}); })
 var LET="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 var progBar=function(n){ var h="<div class='prog'>"; for(var i=0;i<QS.length;i++) h+="<i class='"+(i<=n?"on":"")+"'></i>"; return h+"</div>"; };
 // step 0 — welcome: one centered column, no color block
-html+="<div class='part welcome' data-s='0'><div class='intro'><div class='logo'>W</div><h1>Plan your two years at Wharton</h1>"
+html+="<div class='part welcome' data-s='0'><div class='intro split'><div class='il'><div class='logo'>W</div><h1>Plan your two years at Wharton</h1>"
  +"<p class='lead'>A free planner that helps plan and track core, flex and major courses, recommends Wharton electives that are a best fit for you, and lays out classes across all four semesters in an easy-to-read calendar view.</p>"
  +"<ol class='how'>"
  +"<li><i>1</i><div><b>Take a short survey</b><span>What you did before Wharton, what you're interested in, and which majors you're considering (about 3 minutes). Your answers generate your elective recommendations and set your preferences for the calendar, like which semesters to keep lighter for recruiting.</span></div></li>"
@@ -152,6 +158,7 @@ html+="<div class='part welcome' data-s='0'><div class='intro'><div class='logo'
  +"<li><i>4</i><div><b>Arrange your calendar</b><span>Your picks are placed semester by semester, so you can check that everything fits in two years before you register. Drag, drop and lock in classes to create your perfect schedule! When you're done, export your whole plan to Excel to keep a copy or share it with an AI tool you plan with.</span></div></li>"
  +"</ol>"
  +"<p class='privacy'><b>Privacy:</b> Nothing you enter is stored on a server or sent anywhere — your answers and plan are saved only in this browser, on this device. Clearing your browser data or clicking “Start over” deletes them. We count anonymous visits, completed surveys and started plans (never your answers or any personal details) to see how many people use the planner. Feedback you choose to send goes to the planner's creator through Google Forms, only when you click Submit there.</p>"
+ +"</div><div class='pv'><figure><img src='preview-overview.jpg' alt='A sample plan: progress rings for core and each major, and a two-year calendar of classes'><figcaption>What you'll get: your two years, planned<small>Sample plan · core, majors and every semester at a glance</small></figcaption></figure></div>"
  +"</div></div>";
 QS.forEach(function(x,qi){
  var q=x.q, p=PARTS[x.pi];
