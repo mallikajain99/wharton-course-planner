@@ -526,36 +526,68 @@
            if (a.rule === "pick one" && picked > 1) { status = "⚠ " + picked + " selected — pick one"; met = false; } }
     return { st: st, r: r, can: can, opts: opts, status: status, met: met };
   }
+  // Core page as a table (Megha's beta feedback; approved Version 2, Oct 28 — design/mockup-megha-core-table.html):
+  // summary tiles, a filter, one row per area, and on each ticked class its semester (pre-filled with where it was placed)
+  // and its status, so "I'm taking it now" can be said right here.
+  function whenSelect(c) {
+    var e = S.plan[c], cur = (e.term || "") + "|" + (e.slot || ""), opts = [];
+    TERMS.forEach(function (t) {
+      (isSummer(t) ? ["Summer"] : ["Full", "Q1", "Q2"]).forEach(function (sl) {
+        if (!slotOk(c, sl === "Summer" ? null : sl)) return;
+        var v = t + "|" + (sl === "Summer" ? "" : sl), cv = cur === t + "|Summer" ? t + "|" : cur;
+        opts.push("<option value=\"" + esc(v) + "\"" + (v === cv || (isSummer(t) && e.term === t) ? " selected" : "") + ">" + esc(t + (sl === "Summer" ? "" : " · " + sl)) + "</option>");
+      });
+    });
+    if (!e.term) opts.unshift("<option value='' selected disabled>Not scheduled</option>");
+    return "<select class='wsel' data-when='" + esc(c) + "' title='Semester — change it here or drag it on the Calendar'>" + opts.join("") + "</select>"
+      + (e.locked || e.moved || started(e) ? "" : "<small class='auto'>suggested</small>");
+  }
   function coreView() {
-    var h = "<h2>Core requirements</h2><div class='startbanner'><b>Start here.</b> For each area, choose how you're meeting it — "
-      + "<b>Take</b>, <b>Waived</b>, <b>Placement</b> or <b>Substituted</b> (where allowed) — then tick the classes you've taken, are taking, or plan to take. Areas stay unanswered until you choose.</div>";
+    var all = [], covered = 0;
+    D.core.forEach(function (sec) { sec.areas.forEach(function (a) { var x = coreArea(a); all.push(x); if (x.met) covered += 1; }); });
+    var cu = coreState().reduce(function (t, r) { return t + r.t + r.p; }, 0), need = all.length - covered, f = ui.cfilter || "all";
+    var h = "<div class='ehead'><div class='et'><h2>Core requirements</h2><p class='sub'>Choose how you're meeting each area, then tick your classes. "
+      + "We place them on your calendar. Change the semester or mark a class as taken right here.</p></div>"
+      + "<div class='ctiles'><div class='ctile'><small>Covered</small><b class='g'>" + covered + " / " + all.length + "</b></div>"
+      + "<div class='ctile'><small>Needs action</small><b class='" + (need ? "a" : "g") + "'>" + need + "</b></div>"
+      + "<div class='ctile'><small>Core CU planned</small><b>" + fmt(cu) + "</b></div></div></div>";
     var short = ["FNCE 6210", "FNCE 6230"].filter(function (c) { return S.plan[c]; });
     if (short.length === 2) h += "<div class='watch capwarn'>Wharton doesn't allow using both FNCE 6210 and FNCE 6230 for the flexible core — take the full version of one.</div>";
     if (short.length && (explored.indexOf("Finance") >= 0 || explored.indexOf("Quantitative Finance") >= 0))
       h += "<div class='watch capwarn'>Finance majors can't take FNCE 6210 or FNCE 6230 — you're exploring a Finance major.</div>";
+    h += "<div class='chips'>" + [["all", "All"], ["fixed", "Core"], ["flex", "Flexible"], ["need", "Needs action (" + need + ")"]].map(function (b) {
+      return "<button class='chip" + (f === b[0] ? " on" : "") + "' data-cfilter='" + b[0] + "'>" + b[1] + "</button>"; }).join("") + "</div>";
+    h += "<table class='ctab'><thead><tr><th>Area</th><th>How you're meeting it</th><th>Classes · when · status</th><th class='cu'>CU</th><th>Coverage</th></tr></thead><tbody>";
     D.core.forEach(function (sec) {
-      h += "<div class='sect'>" + esc(sec.section) + "</div><div class='grid'>";
+      var fixed = /fixed/i.test(sec.section);
+      if ((f === "fixed" && !fixed) || (f === "flex" && fixed)) return;
+      var rows = "";
       sec.areas.forEach(function (a) {
-        var x = coreArea(a), st = x.st, r = x.r, can = x.can, opts = x.opts, status = x.status, met = x.met;
-        h += "<div class='cg" + (met ? " met" : "") + (st ? "" : " unanswered") + "'><div class='gh'><span class='gn'>" + esc(a.name) + "</span><span class='gs'>" + esc(a.rule) + " · " + esc(status) + "</span></div>";
-        h += "<div class='cst'><span class='cst-l'>Status:</span>" + [["take", "Take"], ["waived", "Waived"], ["substituted", r.placement ? "Placement" : "Substituted"]].map(function (v) {
+        var x = coreArea(a), st = x.st, r = x.r, can = x.can, opts = x.opts, met = x.met;
+        if (f === "need" && met) return;
+        var have = opts.filter(function (o) { return S.plan[o.code] && !usedForMajor(o.code); }).reduce(function (t, o) { return t + o.cu; }, 0);
+        rows += "<tr class='crow" + (met ? " met" : " need") + "' data-area='" + esc(a.name) + "'><td class='an'><b>" + esc(a.name) + "</b><small>" + esc(a.rule.charAt(0).toUpperCase() + a.rule.slice(1)) + "</small>"
+          + (r.note ? "<small class='nt'>" + esc(r.note) + "</small>" : "")
+          + (r.waive == null && st === "waived" ? "<small class='nt'>Waiver rules for this area aren't loaded here — confirm on MBA Inside before relying on it.</small>" : "") + "</td>";
+        rows += "<td><div class='cst'>" + [["take", "Take"], ["waived", "Waived"], ["substituted", r.placement ? "Placement" : "Substituted"]].map(function (v) {
           return "<label class='" + (can[v[0]] ? "" : "dis") + "'" + (can[v[0]] ? "" : " title='" + (v[0] === "waived" ? "This area can't be waived" : "No substitution is documented for this area") + "'") + "><input type='radio' name='cs-" + esc(a.name) + "' data-core='" + esc(a.name) + "' value='" + v[0] + "'" + (st === v[0] ? " checked" : "") + (can[v[0]] ? "" : " disabled") + "> " + v[1] + "</label>";
-        }).join("") + "</div>";
-        if (r.note) h += "<div class='nt'>" + esc(r.note) + "</div>";
-        if (r.waive == null && st === "waived") h += "<div class='nt'>Waiver rules for this area aren't loaded here — confirm on MBA Inside before relying on it.</div>";
-        h += "<div class='" + (st === "waived" && !r.waive_only ? "waivedlist" : st === "substituted" ? "subs" : "") + "'>";
+        }).join("") + "</div></td><td><div class='copts" + (st === "waived" && !r.waive_only ? " waivedlist" : "") + "'>";
         opts.forEach(function (o) {
           var on = !!S.plan[o.code], um = on && usedForMajor(o.code);
           var gone = st === "waived" && (!r.waive_only || r.waive_only.indexOf(o.code) >= 0);   // waived classes can't be ticked
-          h += "<label class='opt" + (gone && r.waive_only ? " waivedone" : "") + "'>" + (gone ? "" : "<input type='checkbox' data-pick='" + esc(o.code) + "'" + (on ? " checked" : "") + ">")
-            + "<span><b>" + esc(o.code) + "</b> " + esc(o.title) + " · " + fmt(o.cu) + " CU" + (o.note ? "<span class='nt'>" + esc(o.note) + "</span>" : "") + "</span></label>"
+          rows += "<div class='copt" + (on ? " on" : "") + (gone ? " waivedone" : "") + "'><label>" + (gone ? "" : "<input type='checkbox' data-pick='" + esc(o.code) + "'" + (on ? " checked" : "") + ">")
+            + "<span><b>" + esc(o.code) + "</b> " + esc(o.title) + " · " + fmt(o.cu) + (o.note ? "<span class='nt'>" + esc(o.note) + "</span>" : "") + "</span></label>"
+            + (on ? "<span class='when'>" + whenSelect(o.code) + "<button class='stb " + (S.plan[o.code].status || "none") + "' data-status='" + esc(o.code) + "' title='" + STATUS[S.plan[o.code].status || ""][2] + "'>"
+                + (STATUS[S.plan[o.code].status || ""][0] ? STATUS[S.plan[o.code].status || ""][0] + " " : "") + STATUS[S.plan[o.code].status || ""][1] + "</button></span>" : "") + "</div>"
             + (um ? "<div class='usenote'>Counting for " + esc(noFlexMajors(o.code).map(function (m) { return MAJ_SHORT[m]; }).join(" + ")) + " — not this flex requirement. <button class='usebtn' data-use='" + esc(o.code + "||flex") + "'>Use for flex core instead</button></div>" : "");
         });
-        h += "</div></div>";
+        var cov = !st ? "Choose how" : x.status.replace(/^✓ /, "").replace(/^⚠ /, "");
+        rows += "</div></td><td class='cu'>" + (have ? fmt(have) : "—") + "</td><td><span class='cov " + (met ? "ok" : "na") + "'>" + (met ? "✓ " : "") + esc(cov) + "</span></td></tr>";
       });
-      h += "</div>";
+      if (rows) h += "<tr class='csec'><td colspan='5'>" + esc(fixed ? "Core" : sec.section) + "</td></tr>" + rows;   // "Fixed core" reads as just "Core" here
     });
-    return h;
+    if (f === "need" && !need) h += "<tr><td colspan='5' class='cnone'>Every core area is covered.</td></tr>";
+    return h + "</tbody></table>";
   }
   function majorsView() {
     var h = "<h2>Majors you're exploring</h2><p class='sub'>Add or drop majors any time — your picked classes stay in your plan either way.</p>";
@@ -1028,6 +1060,9 @@
   document.addEventListener("change", function (e) {
     var t = e.target;
     if (t.dataset.core) { S.core[t.dataset.core] = t.value; dropInapplicable(t.dataset.core); return commit(); }
+    if (t.dataset.when) {   // semester picked on the Core page = the same as dragging it there (moves, doesn't lock)
+      var we = S.plan[t.dataset.when], wv = t.value.split("|"); if (!we || !t.value) return;
+      we.term = wv[0]; we.slot = wv[1] || null; we.why = "you moved this here"; we.moved = true; return commit(); }
     if (t.dataset.pick) { var pk = t.dataset.pick, wasD = isDouble(pk), mcard = t.closest && t.closest(".cg[data-major]");
       S.use = S.use || {};
       if (t.checked && mcard && noFlexMajors(pk).indexOf(mcard.dataset.major) >= 0) S.use[pk] = "major";   // ticked on a major's card
@@ -1057,7 +1092,7 @@
     S.changes += 1; placeNew(); commit();
   });
   document.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall],[data-rmcal],[data-export],[data-others]");
+    var b = e.target.closest && e.target.closest("[data-decide],[data-filter],[data-more],[data-noopen],[data-lock],[data-resuggest],[data-delown],[data-theme-set],[data-startover],[data-feedback],[data-addmajor],[data-dropmajor],[data-showall],[data-status],[data-countfor],[data-countauto],[data-use],[data-show],[data-addplan],[data-leftall],[data-rmcal],[data-export],[data-others],[data-cfilter]");
     if (!b) return;
     var d = b.dataset;
     if (d.decide) {
@@ -1070,6 +1105,7 @@
     }
     if (d.filter) { ui.filter = d.filter; ui.maybeMore = 60; return render(); }
     if (d.more) { ui.maybeMore += 60; return render(); }
+    if (d.cfilter) { ui.cfilter = d.cfilter; return render(); }
     if (d.others) { ui.othersOpen = true; return render(); }   // stays open while they're on the page
     if (d.noopen) { ui.noOpen = !ui.noOpen; return render(); }
     if (d.lock) { e.preventDefault(); var en = S.plan[d.lock]; en.locked = !en.locked; delete en.autoLock; return commit(); }   //

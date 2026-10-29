@@ -236,6 +236,35 @@ test("Electives Total card over 19 behaves like the Overview (teal 19–21, red 
   expect(await page.locator(".kpi.hero").innerText()).toBe(mini);                  // identical to the Overview card
 });
 
+test("Core table: tiles count areas, Needs action filter, semester picker moves (not locks), status set from Core", async ({ page }) => {
+  await board(page, P("x-five-majors"), "#core");
+  await page.locator("label:has(input[data-core='Leadership'][value='take'])").click();
+  await page.locator("input[data-pick='MGMT 6100']").check();
+  const tiles = page.locator(".ctile b");
+  const [cov, need] = [await tiles.nth(0).innerText(), await tiles.nth(1).innerText()];
+  const total = Number(cov.split("/")[1]);
+  expect(Number(cov.split("/")[0]) + Number(need)).toBe(total);
+  expect(await page.locator("tr.crow").count()).toBe(total);
+  await page.click("[data-cfilter='need']");
+  await expect(page.locator("tr.crow")).toHaveCount(Number(need));
+  await expect(page.locator("tr.crow", { hasText: "Leadership" })).toHaveCount(0);   // covered → hidden under Needs action
+  await page.click("[data-cfilter='all']");
+  await page.locator("label:has(input[data-core='Accounting'][value='take'])").click();
+  await page.locator("input[data-pick='ACCT 6110']").check();
+  const sel = page.locator("select[data-when='ACCT 6110']");
+  await expect(page.locator(".copt.on", { hasText: "ACCT 6110" })).toContainText("suggested");
+  const target = await sel.locator("option").last().getAttribute("value");
+  await sel.selectOption(target);
+  await expect(page.locator(".copt.on", { hasText: "ACCT 6110" })).not.toContainText("suggested");
+  const e = await page.evaluate(() => JSON.parse(localStorage.getItem("wcp.state")).plan["ACCT 6110"]);
+  expect(e.term + "|" + (e.slot || "")).toBe(target);
+  expect(e.locked).toBeFalsy();                                                        // moving doesn't lock — same as dragging on the Calendar
+  await page.locator(".copt.on", { hasText: "ACCT 6110" }).locator("[data-status]").click();
+  await expect(page.locator(".copt.on", { hasText: "ACCT 6110" }).locator("[data-status]")).toContainText("In progress");
+  await view(page, "calendar");
+  await expect(page.locator(".cal [data-chip='ACCT 6110'] .stb")).toContainText("In progress");   // same status everywhere
+});
+
 test("add a major from the Majors page", async ({ page }) => {
   await board(page, P("x-no-majors"), "#majors");
   await expect(page.locator(".cg[data-major]")).toHaveCount(0);
@@ -310,7 +339,7 @@ test("flex core fills the first fall only after fixed core; electives never go t
 
 test("Statistics: Take lists STAT 6130, Placement lists STAT 6210, Waived is allowed", async ({ page }) => {
   await board(page, P("q01-01"), "#core");
-  const card = page.locator(".cg", { hasText: "Statistics" }).first();
+  const card = page.locator(".crow", { hasText: "Statistics" }).first();
   await expect(card.locator(".cst")).toContainText("Placement");
   await card.locator("label:has(input[value='take'])").click();
   await expect(card.locator("input[data-pick='STAT 6130']")).toHaveCount(1);
@@ -457,7 +486,7 @@ test("calendar: nothing is marked taken until the student says so; status cycles
 
 test("a core substitute counts as core, not as a major/elective course", async ({ page }) => {
   await board(page, P("q01-01"), "#core");
-  const card = page.locator(".cg", { hasText: "Accounting" }).first();
+  const card = page.locator(".crow", { hasText: "Accounting" }).first();
   await card.locator("label:has(input[value='substituted'])").click();
   const sub = card.locator("input[data-pick]").first(); const code = await sub.getAttribute("data-pick");
   await sub.check();
@@ -483,7 +512,7 @@ test("first-fall slots: BEPP 6110 Q1, BEPP 6120 Q2 (even if 6110 waived), STAT 6
   expect(await slotOf("BEPP 6120")).toBe("Fall '26 Q2");
   await view(page, "core");
   await page.locator("input[data-pick='BEPP 6110']").uncheck();
-  await page.locator(".cg", { hasText: "Statistics" }).first().locator("label:has(input[value='substituted'])").click();
+  await page.locator(".crow", { hasText: "Statistics" }).first().locator("label:has(input[value='substituted'])").click();
   await page.locator("input[data-pick='STAT 6210']").check();
   await view(page, "calendar");
   expect(await slotOf("BEPP 6120")).toBe("Fall '26 Q2");
@@ -663,11 +692,11 @@ test("flex classes a major lists show under that major and on Major & elective c
 
 test("flex vs. major, one job per class (E&I): ticked in Core it fills flex; switch it to the major; ticked on the major it counts there", async ({ page }) => {
   await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Entrepreneurship & Innovation"] }), "#core");
-  const oidd = page.locator(".cg", { hasText: "Operations, Information" }).first();
+  const oidd = page.locator(".crow", { hasText: "Operations, Information" }).first();
   await oidd.locator("label:has(input[value='take'])").click();
   await oidd.locator("input[data-pick='OIDD 6140']").check();
-  await page.locator(".cg", { hasText: "Operations, Information" }).first().locator("input[data-pick='OIDD 6120']").check();   // 0.5 + 0.5 = the 1.0 CU flex
-  await expect(page.locator(".cg", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
+  await page.locator(".crow", { hasText: "Operations, Information" }).first().locator("input[data-pick='OIDD 6120']").check();   // 0.5 + 0.5 = the 1.0 CU flex
+  await expect(page.locator(".crow", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
   await view(page, "majors");
   const ei = page.locator(".cg[data-major='Entrepreneurship & Innovation']");
   for (let i = 0; i < 6; i++) { const m = ei.locator("[data-showall]", { hasText: "Show all" }); if (!(await m.count())) break; await m.first().click(); }
@@ -677,10 +706,10 @@ test("flex vs. major, one job per class (E&I): ticked in Core it fills flex; swi
   const after = await page.evaluate(() => window.__wcp.majorState().rows[0]);
   expect(after.t + after.p).toBeGreaterThan(before.t + before.p);
   await view(page, "core");
-  await expect(page.locator(".cg", { hasText: "Operations, Information" }).first()).not.toContainText("✓ covered");
+  await expect(page.locator(".crow", { hasText: "Operations, Information" }).first()).not.toContainText("✓ covered");
   await expect(page.locator(".usenote")).toContainText("Counting for E&I — not this flex requirement");
   await page.click("[data-use='OIDD 6140||flex']");
-  await expect(page.locator(".cg", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
+  await expect(page.locator(".crow", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
   // ticking a flex-type class on the major's card makes it count for the major
   await view(page, "majors");
   for (let i = 0; i < 6; i++) { const m = page.locator("[data-showall]", { hasText: "Show all" }); if (!(await m.count())) break; await m.first().click(); }
@@ -690,11 +719,11 @@ test("flex vs. major, one job per class (E&I): ticked in Core it fills flex; swi
 
 test("majors that allow it (OIDD major) count a flex class toward both", async ({ page }) => {
   await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Operations, Information and Decisions"] }), "#core");
-  const oidd = page.locator(".cg", { hasText: "Operations, Information" }).first();
+  const oidd = page.locator(".crow", { hasText: "Operations, Information" }).first();
   await oidd.locator("label:has(input[value='take'])").click();
   await oidd.locator("input[data-pick='OIDD 6110']").check();
-  await page.locator(".cg", { hasText: "Operations, Information" }).first().locator("input[data-pick='OIDD 6120']").check();
-  await expect(page.locator(".cg", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
+  await page.locator(".crow", { hasText: "Operations, Information" }).first().locator("input[data-pick='OIDD 6120']").check();
+  await expect(page.locator(".crow", { hasText: "Operations, Information" }).first()).toContainText("✓ covered");
   const r = await page.evaluate(() => window.__wcp.majorState().rows[0]);
   expect(r.t + r.p).toBeGreaterThan(0);
   await view(page, "majors");
@@ -724,8 +753,8 @@ test("'Also requires' checklist: Business Analytics shows the Statistics core an
   await expect(card.locator(".chk.no")).toHaveCount(3);
   expect(await page.evaluate(() => window.__wcp.majorState().rows[0].need)).toBe(4);   // still 4 CU of electives
   await view(page, "core");
-  await page.locator(".cg", { hasText: "Statistics" }).first().locator("label:has(input[value='waived'])").click();
-  const oidd = page.locator(".cg", { hasText: "Operations, Information" }).first();
+  await page.locator(".crow", { hasText: "Statistics" }).first().locator("label:has(input[value='waived'])").click();
+  const oidd = page.locator(".crow", { hasText: "Operations, Information" }).first();
   await oidd.locator("label:has(input[value='take'])").click();
   await oidd.locator("input[data-pick='OIDD 6120']").check();
   await view(page, "majors");
@@ -736,7 +765,7 @@ test("'Also requires' checklist: Business Analytics shows the Statistics core an
 test("Microeconomics: waiving covers BEPP 6110 only — BEPP 6120 is still required", async ({ page }) => {
   await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028" }), "#core");
   const before = await page.evaluate(() => window.__wcp.coreState()[0].need);
-  const micro = () => page.locator(".cg", { hasText: "Microeconomics" }).first();
+  const micro = () => page.locator(".crow", { hasText: "Microeconomics" }).first();
   await micro().locator("label:has(input[value='waived'])").click();
   await expect(micro()).toContainText("still need BEPP 6120");
   await expect(micro().locator("input[data-pick='BEPP 6110']")).toHaveCount(0);
@@ -783,7 +812,7 @@ test("section caps: a major with room beyond its minimums (BEES) lets extra coun
 
 test("waiving a core area takes its classes off the calendar; Placement swaps STAT 6130 out", async ({ page }) => {
   await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Finance"] }), "#core");
-  const mm = () => page.locator(".cg", { hasText: "Marketing Management" }).first();
+  const mm = () => page.locator(".crow", { hasText: "Marketing Management" }).first();
   await mm().locator("label:has(input[value='take'])").click();
   await mm().locator("input[data-pick='MKTG 6110']").check();
   await view(page, "calendar");
@@ -793,7 +822,7 @@ test("waiving a core area takes its classes off the calendar; Placement swaps ST
   await view(page, "calendar");
   await expect(page.locator("[data-chip='MKTG 6110']")).toHaveCount(0);
   await view(page, "core");
-  const st = () => page.locator(".cg", { hasText: "Statistics" }).first();
+  const st = () => page.locator(".crow", { hasText: "Statistics" }).first();
   await st().locator("label:has(input[value='take'])").click();
   await st().locator("input[data-pick='STAT 6130']").check();
   await st().locator("label:has(input[value='substituted'])").click();
@@ -804,7 +833,7 @@ test("waiving a core area takes its classes off the calendar; Placement swaps ST
 
 test("a waived class that also counts toward an explored major stays (MKTG 6110 for Marketing)", async ({ page }) => {
   await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028", majors: ["Marketing"] }), "#core");
-  const mm = () => page.locator(".cg", { hasText: "Marketing Management" }).first();
+  const mm = () => page.locator(".crow", { hasText: "Marketing Management" }).first();
   await mm().locator("label:has(input[value='take'])").click();
   await mm().locator("input[data-pick='MKTG 6110']").check();
   await mm().locator("label:has(input[value='waived'])").click();
@@ -815,7 +844,7 @@ test("dragging a class moves it without locking it; a moved first-year class sta
   test.skip(isMobile, "drag and drop is a desktop gesture");
   await board(page, Object.assign({}, P("q01-01"), { class: "Class of 2028" }), "#core");
   await page.locator("label:has(input[data-core='Communication'][value='take'])").click();
-  await page.locator("input[data-pick='WHCP 6140']").check().catch(async () => page.locator(".cg", { hasText: "Communication" }).first().locator("input[data-pick]").first().check());
+  await page.locator("input[data-pick='WHCP 6140']").check().catch(async () => page.locator(".crow", { hasText: "Communication" }).first().locator("input[data-pick]").first().check());
   const code = await page.evaluate(() => Object.keys(window.__wcp.S.plan)[0]);
   await view(page, "calendar");
   await page.setViewportSize({ width: 1440, height: 2600 });   // keep the target on screen — a mid-drag scroll cancels a browser drag

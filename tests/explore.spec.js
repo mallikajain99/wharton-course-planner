@@ -92,7 +92,7 @@ async function act(page, rand, isMobile, log) {
     case "theme": { const t = pickOne(["auto", "light", "dark"]); log.push("theme " + t); await page.click(`[data-theme-set='${t}']`); break; }
     case "plus": await click(page.locator(".card.mini [data-decide='yes']").nth(Math.floor(rand() * 3)), "+ top pick"); break;
     case "status": { const l = page.locator(".cst label:not(.dis):has(input[data-core])"); const n = await l.count(); if (n) await click(l.nth(Math.floor(rand() * n)), "core status"); break; }
-    case "tick": { const l = page.locator("label.opt:has(input[data-pick])"); const n = await l.count(); if (n) await click(l.nth(Math.floor(rand() * n)), "tick core class"); break; }
+    case "tick": { const l = page.locator("label.opt:has(input[data-pick]), .copt label:has(input[data-pick])"); const n = await l.count(); if (n) await click(l.nth(Math.floor(rand() * n)), "tick core class"); break; }
     case "addmajor": { const opts = await page.locator("#addmaj option").evaluateAll(o => o.map(x => x.value).filter(Boolean));
       if (opts.length) { const m = pickOne(opts); log.push("majors: add " + m); await page.selectOption("#addmaj", m); await page.click("[data-addmajor='__select']"); await page.waitForLoadState(); } break; }
     case "dropmajor": { const l = page.locator(".cg [data-dropmajor]"); const n = await l.count();

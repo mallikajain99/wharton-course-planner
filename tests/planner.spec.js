@@ -57,7 +57,7 @@ test("survey → board shows summary, Start here, recommendations and privacy", 
   await expect(page.locator("footer .privacy")).toContainText("Nothing you enter is stored on a server");
   await view(page, "core");
   await expect(page.locator(".side a.go.on")).toHaveText("Core");
-  await expect(page.getByText("Start here.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Core requirements" })).toBeVisible();
   await view(page, "electives");
   await expect(page.locator(".reason.best, .reason.poss").first()).toBeVisible();
 });
@@ -66,10 +66,10 @@ test("core: choosing a status and ticking a class updates the area and the calen
   await takeSurvey(page);
   await view(page, "core");
   await page.locator("label:has(input[data-core='Accounting'][value='waived'])").click();
-  await expect(page.locator(".cg", { hasText: "Accounting" }).first()).toContainText("✓ waived");
+  await expect(page.locator(".crow", { hasText: "Accounting" }).first()).toContainText("✓ waived");
   await page.locator("label:has(input[data-core='Corporate finance'][value='take'])").click();
   await page.locator("input[data-pick='FNCE 6110']").first().check();
-  await expect(page.locator(".cg", { hasText: "Corporate finance" }).first()).toContainText("✓ covered");
+  await expect(page.locator(".crow", { hasText: "Corporate finance" }).first()).toContainText("✓ covered");
   await view(page, "calendar");
   await expect(page.locator(".cal [data-chip='FNCE 6110']")).toBeVisible();
 });
