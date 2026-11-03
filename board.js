@@ -839,9 +839,10 @@
   };
   function isSummer(t) { return /^Summer/.test(t || ""); }
   function catOf(c) { var e = S.plan[c]; if (countsAsCore(c)) return "core"; if (e && !e.own && majorsFor(c).length) return "maj"; return "el"; }
-  function showMatch(c) {   // the Show filter: All · Core & flex · one major
+  function showMatch(c) {   // the Show filter: All · Core & flex · Electives · one major
     var f = ui.show || "all"; if (f === "all") return true;
     if (f === "core") return countsAsCore(c);
+    if (f === "el") return catOf(c) === "el";   // same rule as the chip's "Elective" tag
     var a = assignment(); return a.set[c] ? a.set[c].indexOf(f) >= 0 : majorsFor(c).indexOf(f) >= 0;
   }
   function showCU(f) { return entries().filter(function (e) { var o = ui.show; ui.show = f; var m = showMatch(e.code); ui.show = o; return m; }).reduce(function (t, e) { return t + cuOf(e.code); }, 0); }
@@ -855,9 +856,9 @@
     h += "<div class='legendbox'><span><span class='lk off'>" + LOCK_OFF + "</span> Suggested</span><span><span class='lk on'>" + LOCK_ON + "</span> Locked</span>"
       + "<span><span class='stb none'>Not started</span> <span class='stb inprogress'>◐ In progress</span> <span class='stb taken'>✓ Taken</span> click to change</span>"
       + "<span><span class='twice'>×2</span> counts twice</span><span class='nt'>Semesters are suggestions — confirm in Course Match</span></div>";
-    var opts = [["all", "All"], ["core", "Core & flex"]].concat(explored.filter(function (m) { return ALLM[m] && ALLM[m].total; }).map(function (m) { return [m, MAJ_SHORT[m]]; }));
+    var opts = [["all", "All"], ["core", "Core & flex"], ["el", "Electives"]].concat(explored.filter(function (m) { return ALLM[m] && ALLM[m].total; }).map(function (m) { return [m, MAJ_SHORT[m]]; }));
     h += "<div class='hl'><b>SHOW</b>" + opts.map(function (o) {
-        return "<button class='hlc" + ((ui.show || "all") === o[0] ? " on" : "") + "' data-show='" + esc(o[0]) + "'>" + (o[0] !== "all" ? "<i style='background:" + (o[0] === "core" ? "var(--teal)" : MAJ_COLOR[o[0]]) + "'></i>" : "") + esc(o[1]) + " <small>" + fmt(showCU(o[0])) + " CU</small></button>"; }).join("")
+        return "<button class='hlc" + ((ui.show || "all") === o[0] ? " on" : "") + "' data-show='" + esc(o[0]) + "'>" + (o[0] !== "all" ? "<i style='background:" + (o[0] === "core" ? "var(--teal)" : o[0] === "el" ? "var(--muted)" : MAJ_COLOR[o[0]]) + "'></i>" : "") + esc(o[1]) + " <small>" + fmt(showCU(o[0])) + " CU</small></button>"; }).join("")
       + (explored.length > 1 ? "<span class='dbl'>Double-counted <b>" + fmt(dblUsed()) + "</b> of 2.0 CU</span>" : "<span class='dbl'></span>")
       + "<button class='resugbtn' data-resuggest='1'>↻ Re-suggest</button></div>"
       + (S.changes >= 3 ? "<div class='nudge'>You've added or removed " + S.changes + " classes since the last full suggestion — Re-suggest for a fresh layout. Locked classes won't move.</div>" : "");
